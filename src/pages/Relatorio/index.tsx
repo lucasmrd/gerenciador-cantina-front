@@ -103,7 +103,7 @@ const Relatorio: React.FC = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await axios.get("http://localhost:8080/api/funcionarios/gastos-funcionarios", {
+        const response = await axios.get("https://controle-de-estoque-60ju.onrender.com/api/funcionarios/gastos-funcionarios", {
           params: {
             mes,
             ano,

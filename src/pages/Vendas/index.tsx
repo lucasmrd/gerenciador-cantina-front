@@ -185,7 +185,7 @@ interface Venda {
   formaPagamento: string;
 }
 
-const API_BASE = "http://localhost:8080/api";
+const API_BASE = "https://controle-de-estoque-60ju.onrender.com/api";
 
 const Vendas = () => {
   const navigate = useNavigate();

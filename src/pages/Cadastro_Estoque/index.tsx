@@ -129,7 +129,7 @@ const CadastroProdutos: React.FC = () => {
     };
 
     try {
-      const response = await fetch("http://localhost:8080/api/produtos", {
+      const response = await fetch("https://controle-de-estoque-60ju.onrender.com/api/produtos", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

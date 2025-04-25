@@ -136,7 +136,7 @@ const Entradas = () => {
 
   const fetchEntradas = async () => {
     try {
-      let url = "http://localhost:8080/api/entradas";
+      let url = "https://controle-de-estoque-60ju.onrender.com/api/entradas";
       let params: any = {
         page: currentPage,
         size: pageSize,

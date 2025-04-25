@@ -126,7 +126,7 @@ const CadastroFuncionario: React.FC = () => {
 
   const fetchFuncionarios = async () => {
     try {
-      const response = await axios.get(`http://localhost:8080/api/funcionarios?page=${currentPage}&size=10`);
+      const response = await axios.get(`https://controle-de-estoque-60ju.onrender.com/api/funcionarios?page=${currentPage}&size=10`);
       if (Array.isArray(response.data?.content)) {
         setFuncionarios(response.data.content);
         setTotalPages(response.data.totalPages);
@@ -144,7 +144,7 @@ const CadastroFuncionario: React.FC = () => {
   const fetchFuncionariosFiltrados = async () => {
     try {
       const response = await axios.get(
-        `http://localhost:8080/api/funcionarios/buscar?nome=${search}&page=${currentPage}&size=10`
+        `https://controle-de-estoque-60ju.onrender.com/api/funcionarios/buscar?nome=${search}&page=${currentPage}&size=10`
       );
       if (Array.isArray(response.data?.content)) {
         setFuncionarios(response.data.content);
@@ -166,10 +166,10 @@ const CadastroFuncionario: React.FC = () => {
 
     try {
       if (editando) {
-        await axios.put(`http://localhost:8080/api/funcionarios/${editando}`, { nome });
+        await axios.put(`https://controle-de-estoque-60ju.onrender.com/api/funcionarios/${editando}`, { nome });
         setEditando(null);
       } else {
-        await axios.post("http://localhost:8080/api/funcionarios", { nome });
+        await axios.post("https://controle-de-estoque-60ju.onrender.com/api/funcionarios", { nome });
       }
       fetchFuncionarios();
       setNome("");
@@ -188,7 +188,7 @@ const CadastroFuncionario: React.FC = () => {
 
   const handleDelete = async (id: string) => {
     try {
-      await axios.delete(`http://localhost:8080/api/funcionarios/${id}`);
+      await axios.delete(`https://controle-de-estoque-60ju.onrender.com/api/funcionarios/${id}`);
       fetchFuncionarios();
     } catch (error) {
       console.error("Erro ao excluir funcionário:", error);

@@ -163,7 +163,7 @@ const List = () => {
 
   useEffect(() => {
     axios
-      .get(`http://localhost:8080/api/produtos`, {
+      .get(`hhttps://controle-de-estoque-60ju.onrender.com/api/produtos`, {
         params: {
           page,
           size: 15,
@@ -195,7 +195,7 @@ const List = () => {
     if (product) {
       const updated = { ...product, ...updatedProduct };
       axios
-        .put(`http://localhost:8080/api/produtos/${id}`, updated)
+        .put(`https://controle-de-estoque-60ju.onrender.com/api/produtos/${id}`, updated)
         .then((response) => {
           setProducts(products.map((p) => (p.id === id ? response.data : p)));
           setEditMode(null);
@@ -208,7 +208,7 @@ const List = () => {
 
   const handleDelete = (id: string) => {
     axios
-      .delete(`http://localhost:8080/api/produtos/${id}`)
+      .delete(`https://controle-de-estoque-60ju.onrender.com/api/produtos/${id}`)
       .then(() => {
         setProducts(products.filter((product) => product.id !== id));
       })

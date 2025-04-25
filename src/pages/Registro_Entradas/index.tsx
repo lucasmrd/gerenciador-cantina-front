@@ -85,7 +85,7 @@ const RegistroEntradas: React.FC = () => {
   const [data, setData] = useState<string>('');
 
   useEffect(() => {
-    axios.get('http://localhost:8080/api/produtos?page=0&size=10')
+    axios.get('https://controle-de-estoque-60ju.onrender.com/api/produtos?page=0&size=10')
       .then(response => {
         setProdutos(response.data.content);
       })
@@ -104,7 +104,7 @@ const RegistroEntradas: React.FC = () => {
       };
 
       try {
-        await axios.post("http://localhost:8080/api/entradas", entradaData, {
+        await axios.post("https://controle-de-estoque-60ju.onrender.com/api/entradas", entradaData, {
           headers: { "Content-Type": "application/json" }
         });
         alert("Entrada registrada com sucesso!");

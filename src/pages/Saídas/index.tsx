@@ -170,21 +170,21 @@ const Saidas = () => {
 
   const buscarSaidas = async () => {
     try {
-      let url = "http://localhost:8080/api/vendas";
+      let url = "https://controle-de-estoque-60ju.onrender.com/api/vendas";
       const params: any = {
         page: currentPage,
         size: pageSize,
       };
 
       if (filtroMes && filtroAno) {
-        url = "http://localhost:8080/api/vendas/filtrar";
+        url = "https://controle-de-estoque-60ju.onrender.com/api/vendas/filtrar";
         params.mes = filtroMes;
         params.ano = filtroAno;
       } else if (filtroMes) {
-        url = "http://localhost:8080/api/vendas/filtrar/mes";
+        url = "https://controle-de-estoque-60ju.onrender.com/api/vendas/filtrar/mes";
         params.mes = filtroMes;
       } else if (filtroAno) {
-        url = "http://localhost:8080/api/vendas/filtrar/ano";
+        url = "https://controle-de-estoque-60ju.onrender.com/api/vendas/filtrar/ano";
         params.ano = filtroAno;
       }
 
