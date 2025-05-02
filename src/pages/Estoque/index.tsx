@@ -3,7 +3,7 @@ import ContentHeader from "../../components/ContentHeader";
 import styled from "styled-components";
 import { useNavigate } from "react-router-dom";
 import { IoArrowBack } from "react-icons/io5";
-import axios from "axios";
+import api from "../../api";
 
 interface Product {
   id: string;
@@ -152,7 +152,7 @@ const Pagination = styled.div`
   }
 `;
 
-const List = () => {
+const List: React.FC = () => {
   const navigate = useNavigate();
   const [products, setProducts] = useState<Product[]>([]);
   const [filter, setFilter] = useState<string>("all");
@@ -162,19 +162,14 @@ const List = () => {
   const [updatedProduct, setUpdatedProduct] = useState<Partial<Product>>({});
 
   useEffect(() => {
-    axios
-      .get(`hhttps://controle-de-estoque-60ju.onrender.com/api/produtos`, {
-        params: {
-          page,
-          size: 15,
-        },
-      })
+    api
+      .get('/api/produtos', { params: { page, size: 15 } })
       .then((response) => {
         setProducts(response.data.content);
         setTotalPages(response.data.totalPages);
       })
       .catch((error) => {
-        console.error("Erro ao buscar produtos", error);
+        console.error('Erro ao buscar produtos', error);
       });
   }, [page]);
 
@@ -192,28 +187,28 @@ const List = () => {
 
   const handleSave = (id: string) => {
     const product = products.find((product) => product.id === id);
-    if (product) {
-      const updated = { ...product, ...updatedProduct };
-      axios
-        .put(`https://controle-de-estoque-60ju.onrender.com/api/produtos/${id}`, updated)
-        .then((response) => {
-          setProducts(products.map((p) => (p.id === id ? response.data : p)));
-          setEditMode(null);
-        })
-        .catch((error) => {
-          console.error("Erro ao salvar produto", error);
-        });
-    }
+    if (!product) return;
+
+    const updated = { ...product, ...updatedProduct };
+    api
+      .put(`/api/produtos/${id}`, updated)
+      .then((response) => {
+        setProducts(products.map((p) => (p.id === id ? response.data : p)));
+        setEditMode(null);
+      })
+      .catch((error) => {
+        console.error('Erro ao salvar produto', error);
+      });
   };
 
   const handleDelete = (id: string) => {
-    axios
-      .delete(`https://controle-de-estoque-60ju.onrender.com/api/produtos/${id}`)
+    api
+      .delete(`/api/produtos/${id}`)
       .then(() => {
         setProducts(products.filter((product) => product.id !== id));
       })
       .catch((error) => {
-        console.error("Erro ao deletar produto", error);
+        console.error('Erro ao deletar produto', error);
       });
   };
 
@@ -238,7 +233,7 @@ const List = () => {
           <option value="LANCHES">Lanches</option>
           <option value="DOCES">Doces</option>
         </Select>
-        <BackButton onClick={() => navigate("/controle_estoque")}>
+        <BackButton onClick={() => navigate("/controle_estoque")}> 
           <IoArrowBack size={16} /> Voltar
         </BackButton>
       </ContentHeader>
@@ -250,7 +245,7 @@ const List = () => {
               <EditForm>
                 <StyledInput
                   placeholder="Nome"
-                  value={updatedProduct.nome || ""}
+                  value={updatedProduct.nome || ''}
                   onChange={(e) =>
                     setUpdatedProduct({
                       ...updatedProduct,
@@ -261,7 +256,7 @@ const List = () => {
                 <StyledInput
                   type="number"
                   placeholder="Preço"
-                  value={updatedProduct.preco || ""}
+                  value={updatedProduct.preco ?? ''}
                   onChange={(e) =>
                     setUpdatedProduct({
                       ...updatedProduct,
@@ -272,7 +267,7 @@ const List = () => {
                 <StyledInput
                   type="number"
                   placeholder="Quantidade"
-                  value={updatedProduct.quantidade || ""}
+                  value={updatedProduct.quantidade ?? ''}
                   onChange={(e) =>
                     setUpdatedProduct({
                       ...updatedProduct,
@@ -284,10 +279,7 @@ const List = () => {
                   <Button
                     variant="save"
                     onClick={() => {
-                      const confirmar = window.confirm(
-                        "Deseja realmente salvar?"
-                      );
-                      if (confirmar) {
+                      if (window.confirm('Deseja realmente salvar?')) {
                         handleSave(product.id);
                       }
                     }}
@@ -318,10 +310,7 @@ const List = () => {
                   <Button
                     variant="delete"
                     onClick={() => {
-                      const confirmar = window.confirm(
-                        "Deseja realmente excluir este produto?"
-                      );
-                      if (confirmar) {
+                      if (window.confirm('Deseja realmente excluir este produto?')) {
                         handleDelete(product.id);
                       }
                     }}

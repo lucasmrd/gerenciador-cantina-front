@@ -4,9 +4,9 @@ import styled from "styled-components";
 import ContentHeader from "../../components/ContentHeader";
 import { useNavigate } from "react-router-dom";
 import { IoArrowBack } from "react-icons/io5";
-import axios from "axios";
 import { AiOutlineClose } from "react-icons/ai";
 import { StylesConfig } from "react-select";
+import api from "../../api";
 
 const Container = styled.div`
   max-width: 1000px;
@@ -119,24 +119,18 @@ const customStyles: StylesConfig<{ value: string; label: string }, false> = {
     backgroundColor: "#fff",
     borderColor: state.isFocused ? "#4E41F0" : "#ccc",
     boxShadow: state.isFocused ? "0 0 0 2px rgba(78, 65, 240, 0.5)" : "none",
-    "&:hover": {
-      borderColor: "#4E41F0",
-    },
+    "&:hover": { borderColor: "#4E41F0" },
   }),
-  menu: (base) => ({
-    ...base,
-    backgroundColor: "#fff",
-    color: "#000",
-  }),
+  menu: (base) => ({ ...base, backgroundColor: "#fff", color: "#000" }),
 };
 
-const Saidas = () => {
+const Saidas: React.FC = () => {
   const navigate = useNavigate();
-  const [filtroMes, setFiltroMes] = useState("");
-  const [filtroAno, setFiltroAno] = useState("");
-  const [saidas, setSaidas] = useState([]);
-  const [currentPage, setCurrentPage] = useState(0);
-  const [totalPages, setTotalPages] = useState(1);
+  const [filtroMes, setFiltroMes] = useState<string>("");
+  const [filtroAno, setFiltroAno] = useState<string>("");
+  const [saidas, setSaidas] = useState<any[]>([]);
+  const [currentPage, setCurrentPage] = useState<number>(0);
+  const [totalPages, setTotalPages] = useState<number>(1);
   const pageSize = 10;
 
   const meses = [
@@ -165,32 +159,28 @@ const Saidas = () => {
   }, [filtroMes, filtroAno]);
 
   useEffect(() => {
-    buscarSaidas();
+    fetchSaidas();
   }, [currentPage, filtroMes, filtroAno]);
 
-  const buscarSaidas = async () => {
+  const fetchSaidas = async () => {
     try {
-      let url = "https://controle-de-estoque-60ju.onrender.com/api/vendas";
-      const params: any = {
-        page: currentPage,
-        size: pageSize,
-      };
+      let endpoint = "/api/vendas";
+      const params: any = { page: currentPage, size: pageSize };
 
       if (filtroMes && filtroAno) {
-        url = "https://controle-de-estoque-60ju.onrender.com/api/vendas/filtrar";
+        endpoint += "/filtrar";
         params.mes = filtroMes;
         params.ano = filtroAno;
       } else if (filtroMes) {
-        url = "https://controle-de-estoque-60ju.onrender.com/api/vendas/filtrar/mes";
+        endpoint += "/filtrar/mes";
         params.mes = filtroMes;
       } else if (filtroAno) {
-        url = "https://controle-de-estoque-60ju.onrender.com/api/vendas/filtrar/ano";
+        endpoint += "/filtrar/ano";
         params.ano = filtroAno;
       }
 
-      const response = await axios.get(url, { params });
+      const response = await api.get(endpoint, { params });
       const dados = response.data;
-
       setSaidas(dados.content);
       setTotalPages(dados.totalPages);
     } catch (error) {
@@ -199,15 +189,13 @@ const Saidas = () => {
   };
 
   const handlePageChange = (page: number) => {
-    if (page >= 0 && page < totalPages) {
-      setCurrentPage(page);
-    }
+    if (page >= 0 && page < totalPages) setCurrentPage(page);
   };
 
   return (
     <div>
       <ContentHeader title="Saídas" lineColor="#4E41F0">
-        <BackButton onClick={() => navigate("/controle_estoque")}>
+        <BackButton onClick={() => navigate("/controle_estoque")}> 
           <IoArrowBack size={16} /> Voltar
         </BackButton>
       </ContentHeader>
@@ -221,14 +209,10 @@ const Saidas = () => {
               options={meses}
               placeholder="Filtrar por mês"
               value={meses.find((m) => m.value === filtroMes) || null}
-              onChange={(option) => setFiltroMes(option?.value || "")}
+              onChange={(opt) => setFiltroMes(opt?.value || "")}
               styles={customStyles}
             />
-            {filtroMes && (
-              <ClearButton onClick={() => setFiltroMes("")}>
-                <AiOutlineClose />
-              </ClearButton>
-            )}
+            {filtroMes && <ClearButton onClick={() => setFiltroMes("")}><AiOutlineClose /></ClearButton>}
           </FilterWrapper>
 
           <FilterWrapper>
@@ -236,14 +220,10 @@ const Saidas = () => {
               options={anos}
               placeholder="Filtrar por ano"
               value={anos.find((a) => a.value === filtroAno) || null}
-              onChange={(option) => setFiltroAno(option?.value || "")}
+              onChange={(opt) => setFiltroAno(opt?.value || "")}
               styles={customStyles}
             />
-            {filtroAno && (
-              <ClearButton onClick={() => setFiltroAno("")}>
-                <AiOutlineClose />
-              </ClearButton>
-            )}
+            {filtroAno && <ClearButton onClick={() => setFiltroAno("")}><AiOutlineClose /></ClearButton>}
           </FilterWrapper>
         </FilterContainer>
 
@@ -257,12 +237,12 @@ const Saidas = () => {
             </tr>
           </thead>
           <tbody>
-            {saidas.map((saida: any) => (
+            {saidas.map((saida) => (
               <tr key={saida.id}>
                 <Td>{saida.funcionario}</Td>
                 <Td>
-                  {(saida.itens || []).map((item: any, index: number) => (
-                    <div key={index}>
+                  {(saida.itens || []).map((item: any, idx: number) => (
+                    <div key={idx}>
                       • {item.nomeProduto} ({item.quantidade}) - R$ {item.valor.toFixed(2)}
                     </div>
                   ))}
@@ -281,9 +261,7 @@ const Saidas = () => {
           >
             Anterior
           </PaginationButton>
-          <Span>
-            Página {currentPage + 1} de {totalPages}
-          </Span>
+          <Span>Página {currentPage + 1} de {totalPages}</Span>
           <PaginationButton
             onClick={() => handlePageChange(currentPage + 1)}
             disabled={currentPage + 1 === totalPages}

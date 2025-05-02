@@ -3,7 +3,7 @@ import ContentHeader from "../../components/ContentHeader";
 import styled from "styled-components";
 import { useNavigate } from "react-router-dom";
 import { IoArrowBack } from "react-icons/io5";
-import axios from "axios";
+import api from "../../api";
 
 const Container = styled.div`
   padding: 20px;
@@ -44,7 +44,6 @@ const TableContainer = styled.div`
 
 const Table = styled.table`
   width: 100%;
-  
   border-collapse: collapse;
 `;
 
@@ -126,14 +125,10 @@ const CadastroFuncionario: React.FC = () => {
 
   const fetchFuncionarios = async () => {
     try {
-      const response = await axios.get(`https://controle-de-estoque-60ju.onrender.com/api/funcionarios?page=${currentPage}&size=10`);
-      if (Array.isArray(response.data?.content)) {
-        setFuncionarios(response.data.content);
-        setTotalPages(response.data.totalPages);
-      } else {
-        setFuncionarios([]);
-        setTotalPages(1);
-      }
+      const response = await api.get("/api/funcionarios", { params: { page: currentPage, size: 10 } });
+      const dados = response.data;
+      setFuncionarios(Array.isArray(dados.content) ? dados.content : []);
+      setTotalPages(dados.totalPages || 1);
     } catch (error) {
       console.error("Erro ao buscar funcionários:", error);
       setFuncionarios([]);
@@ -143,16 +138,10 @@ const CadastroFuncionario: React.FC = () => {
 
   const fetchFuncionariosFiltrados = async () => {
     try {
-      const response = await axios.get(
-        `https://controle-de-estoque-60ju.onrender.com/api/funcionarios/buscar?nome=${search}&page=${currentPage}&size=10`
-      );
-      if (Array.isArray(response.data?.content)) {
-        setFuncionarios(response.data.content);
-        setTotalPages(response.data.totalPages);
-      } else {
-        setFuncionarios([]);
-        setTotalPages(1);
-      }
+      const response = await api.get("/api/funcionarios/buscar", { params: { nome: search, page: currentPage, size: 10 } });
+      const dados = response.data;
+      setFuncionarios(Array.isArray(dados.content) ? dados.content : []);
+      setTotalPages(dados.totalPages || 1);
     } catch (error) {
       console.error("Erro ao buscar funcionários filtrados:", error);
       setFuncionarios([]);
@@ -166,10 +155,10 @@ const CadastroFuncionario: React.FC = () => {
 
     try {
       if (editando) {
-        await axios.put(`https://controle-de-estoque-60ju.onrender.com/api/funcionarios/${editando}`, { nome });
+        await api.put(`/api/funcionarios/${editando}`, { nome });
         setEditando(null);
       } else {
-        await axios.post("https://controle-de-estoque-60ju.onrender.com/api/funcionarios", { nome });
+        await api.post("/api/funcionarios", { nome });
       }
       fetchFuncionarios();
       setNome("");
@@ -188,7 +177,7 @@ const CadastroFuncionario: React.FC = () => {
 
   const handleDelete = async (id: string) => {
     try {
-      await axios.delete(`https://controle-de-estoque-60ju.onrender.com/api/funcionarios/${id}`);
+      await api.delete(`/api/funcionarios/${id}`);
       fetchFuncionarios();
     } catch (error) {
       console.error("Erro ao excluir funcionário:", error);
@@ -197,8 +186,8 @@ const CadastroFuncionario: React.FC = () => {
 
   return (
     <Container>
-      <ContentHeader title="Cadastro de Funcionário" lineColor="#4E41F0">
-        <BackButton onClick={() => navigate("/controle_estoque")}>
+      <ContentHeader title="Funcionários" lineColor="#4E41F0">
+        <BackButton onClick={() => navigate("/controle_estoque")}> 
           <IoArrowBack size={16} /> Voltar
         </BackButton>
       </ContentHeader>
@@ -218,10 +207,7 @@ const CadastroFuncionario: React.FC = () => {
         type="text"
         placeholder="Pesquisar funcionário..."
         value={search}
-        onChange={(e) => {
-          setSearch(e.target.value);
-          setCurrentPage(0); 
-        }}
+        onChange={(e) => { setSearch(e.target.value); setCurrentPage(0);} }
         style={{ marginTop: "20px" }}
       />
 
@@ -239,16 +225,7 @@ const CadastroFuncionario: React.FC = () => {
                 <Td width="800px">{func.nome}</Td>
                 <Td width="200px">
                   <ActionButton onClick={() => handleEdit(func.id)}>Editar</ActionButton>
-                  <ActionButton
-                    onClick={() => {
-                      const confirmar = window.confirm("Deseja realmente excluir esse funcionário?");
-                      if (confirmar) {
-                        handleDelete(func.id);
-                      }
-                    }}
-                  >
-                    Excluir
-                  </ActionButton>
+                  <ActionButton onClick={() => { if(window.confirm("Deseja realmente excluir esse funcionário?")) handleDelete(func.id); }}>Excluir</ActionButton>
                 </Td>
               </tr>
             ))}
@@ -257,18 +234,9 @@ const CadastroFuncionario: React.FC = () => {
       </TableContainer>
 
       <Pagination>
-        <Button onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 0))} disabled={currentPage === 0}>
-          Anterior
-        </Button>
-        <span>
-          Página {currentPage + 1} de {totalPages}
-        </span>
-        <Button
-          onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages - 1))}
-          disabled={currentPage === totalPages - 1}
-        >
-          Próxima
-        </Button>
+        <Button onClick={() => setCurrentPage(prev => Math.max(prev - 1, 0))} disabled={currentPage === 0}>Anterior</Button>
+        <span>Página {currentPage + 1} de {totalPages}</span>
+        <Button onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages - 1))} disabled={currentPage === totalPages - 1}>Próxima</Button>
       </Pagination>
     </Container>
   );

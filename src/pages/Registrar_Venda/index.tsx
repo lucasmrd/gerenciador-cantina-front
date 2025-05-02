@@ -4,8 +4,8 @@ import { AsyncPaginate } from "react-select-async-paginate";
 import ContentHeader from "../../components/ContentHeader";
 import { useNavigate } from "react-router-dom";
 import { IoArrowBack } from "react-icons/io5";
-import axios from "axios";
 import Select from "react-select";
+import api from "../../api";
 
 // Styled-components
 const Container = styled.div``;
@@ -185,16 +185,13 @@ interface Venda {
   formaPagamento: string;
 }
 
-const API_BASE = "https://controle-de-estoque-60ju.onrender.com/api";
-
-const Vendas = () => {
+const Vendas: React.FC = () => {
   const navigate = useNavigate();
   const [venda, setVenda] = useState<Venda>({
     funcionarioId: "",
     itens: [],
     formaPagamento: "",
   });
-
   const [itemTemp, setItemTemp] = useState<ItemVenda | null>(null);
   const [produtoSelecionado, setProdutoSelecionado] = useState<any | null>(null);
   const [quantidade, setQuantidade] = useState<number | string>("");
@@ -237,12 +234,15 @@ const Vendas = () => {
     setVenda({ ...venda, itens: novaLista });
   };
 
-  const calcularTotalVenda = () => {
-    return venda.itens.reduce((total, item) => total + item.subtotal, 0);
-  };
+  const calcularTotalVenda = () =>
+    venda.itens.reduce((total, item) => total + item.subtotal, 0);
 
-  const carregarFuncionarios = async (inputValue: string, loadedOptions: any, { page }: any) => {
-    const response = await axios.get(`${API_BASE}/funcionarios/buscar`, {
+  const carregarFuncionarios = async (
+    inputValue: string,
+    _loadedOptions: any,
+    { page }: any
+  ) => {
+    const response = await api.get("/api/funcionarios/buscar", {
       params: { nome: inputValue, page, size: 10 },
     });
     const content = response.data.content;
@@ -257,8 +257,12 @@ const Vendas = () => {
     };
   };
 
-  const carregarProdutos = async (inputValue: string, loadedOptions: any, { page }: any) => {
-    const response = await axios.get(`${API_BASE}/produtos`, {
+  const carregarProdutos = async (
+    inputValue: string,
+    _loadedOptions: any,
+    { page }: any
+  ) => {
+    const response = await api.get("/api/produtos", {
       params: { page, size: 20 },
     });
     const content = response.data.content;
@@ -304,7 +308,7 @@ const Vendas = () => {
     };
 
     try {
-      await axios.post(`${API_BASE}/vendas`, payload);
+      await api.post("/api/vendas", payload);
       alert("Venda registrada com sucesso!");
       navigate("/controle_estoque");
     } catch (error) {
@@ -316,7 +320,7 @@ const Vendas = () => {
   return (
     <Container>
       <ContentHeader title="Registrar Venda" lineColor="#E44C4E">
-        <BackButton onClick={() => navigate("/controle_estoque")}>
+        <BackButton onClick={() => navigate("/controle_estoque")}> 
           <IoArrowBack size={16} /> Voltar
         </BackButton>
       </ContentHeader>
@@ -384,7 +388,7 @@ const Vendas = () => {
           defaultOptions
           additional={{ page: 0 }}
           onChange={(selectedOption: any) =>
-            setVenda({ ...venda, funcionarioId: selectedOption.value })
+            setVenda({ ...venda, funcionarioId: selectedOption.value.toString() })
           }
         />
 

@@ -3,7 +3,7 @@ import styled from "styled-components";
 import ContentHeader from "../../components/ContentHeader";
 import { IoArrowBack } from "react-icons/io5";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import api from "../../api";
 
 const Container = styled.div`
   padding: 20px;
@@ -103,17 +103,12 @@ const Relatorio: React.FC = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await axios.get("https://controle-de-estoque-60ju.onrender.com/api/funcionarios/gastos-funcionarios", {
-          params: {
-            mes,
-            ano,
-            page: currentPage,
-            size: 10,
-          },
+        const response = await api.get("/api/funcionarios/gastos-funcionarios", {
+          params: { mes, ano, page: currentPage, size: 10 },
         });
-
-        setRelatorio(response.data.content);
-        setTotalPages(response.data.totalPages);
+        const dados = response.data;
+        setRelatorio(dados.content);
+        setTotalPages(dados.totalPages);
       } catch (error) {
         console.error("Erro ao buscar dados:", error);
       }
@@ -131,7 +126,7 @@ const Relatorio: React.FC = () => {
       </ContentHeader>
 
       <Filters>
-        <Select value={mes} onChange={(e) => setMes(Number(e.target.value))}>
+        <Select value={mes} onChange={(e) => { setMes(Number(e.target.value)); setCurrentPage(0); }}>
           {[...Array(12)].map((_, index) => (
             <option key={index + 1} value={index + 1}>
               {index + 1} - {new Date(0, index).toLocaleString("pt-BR", { month: "long" })}
@@ -139,7 +134,7 @@ const Relatorio: React.FC = () => {
           ))}
         </Select>
 
-        <Select value={ano} onChange={(e) => setAno(Number(e.target.value))}>
+        <Select value={ano} onChange={(e) => { setAno(Number(e.target.value)); setCurrentPage(0); }}>
           {[...Array(5)].map((_, index) => {
             const y = new Date().getFullYear() - index;
             return (
@@ -154,10 +149,7 @@ const Relatorio: React.FC = () => {
           type="text"
           placeholder="Pesquisar por nome..."
           value={search}
-          onChange={(e) => {
-            setSearch(e.target.value);
-            setCurrentPage(0);
-          }}
+          onChange={(e) => setSearch(e.target.value)}
         />
       </Filters>
 
@@ -185,10 +177,7 @@ const Relatorio: React.FC = () => {
       </TableContainer>
 
       <Pagination>
-        <Button
-          onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 0))}
-          disabled={currentPage === 0}
-        >
+        <Button onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 0))} disabled={currentPage === 0}>
           Anterior
         </Button>
         <span>

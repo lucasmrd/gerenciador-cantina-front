@@ -1,44 +1,61 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import api from '../api';
+import { useNavigate } from 'react-router-dom';
 
 interface IAuthContext {
-    logged: boolean;
-    signIn(email: string, password: string): void;
-    signOut(): void;
+  logged: boolean;
+  signIn(email: string, password: string): Promise<void>;
+  signOut(): void;
 }
 
 const AuthContext = createContext<IAuthContext>({} as IAuthContext);
 
 const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const [logged, setLogged] = useState<boolean>(() => {
-        const isLogged = localStorage.getItem('@minha-carteira:logged');
-        return !!isLogged;
-    });
+  const [logged, setLogged] = useState<boolean>(false);
+  const navigate = useNavigate();
 
-    const signIn = (email: string, password: string) => {
-        if (email === 'nadia@gmail.com' && password === '1234') {
-            localStorage.setItem('@minha-carteira:logged', 'true');
-            setLogged(true);
-        }else{
-            alert('Usuário ou senha inválidos!');
-        }
-    };
+  const setAuthToken = (token: string | null) => {
+    if (token) api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    else delete api.defaults.headers.common['Authorization'];
+  };
 
-    const signOut = () => {
-        localStorage.removeItem('@minha-carteira:logged');
-        setLogged(false);
-    };
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      setAuthToken(token);
+      setLogged(true);
+    }
+  }, []);
 
-    return (
-        <AuthContext.Provider value={{ logged, signIn, signOut }}>
-            {children}
-        </AuthContext.Provider>
-    );
+  const signIn = async (login: string, senha: string) => {
+    try {
+      const response = await api.post('/api/login', { login, senha });
+      const token = response.data;
+      console.log('Token recebido:', token);
+      localStorage.setItem('token', token);
+      setAuthToken(token);
+      setLogged(true);
+    } catch (err) {
+      alert('Usuário ou senha inválidos!');
+    }
+  };
+
+  const signOut = () => {
+    localStorage.removeItem('token');
+    setAuthToken(null);
+    setLogged(false);
+    navigate('/login', { replace: true });
+  };
+
+  return (
+    <AuthContext.Provider value={{ logged, signIn, signOut }}>
+      {children}
+    </AuthContext.Provider>
+  );
 };
 
-function useAuth(): IAuthContext{
-    const context = useContext(AuthContext);
-
-    return context;
+function useAuth(): IAuthContext {
+  return useContext(AuthContext);
 }
 
 export { AuthContext, AuthProvider, useAuth };

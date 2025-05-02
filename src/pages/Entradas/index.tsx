@@ -5,7 +5,7 @@ import ContentHeader from "../../components/ContentHeader";
 import { useNavigate } from "react-router-dom";
 import { IoArrowBack } from "react-icons/io5";
 import { StylesConfig } from "react-select";
-import axios from "axios";
+import api from "../../api";
 
 const Container = styled.div`
   max-width: 900px;
@@ -93,9 +93,7 @@ const customStyles: StylesConfig<{ value: string; label: string }, false> = {
     color: "#000",
     borderColor: state.isFocused ? "#4E41F0" : "#ccc",
     boxShadow: state.isFocused ? "0 0 0 2px rgba(78, 65, 240, 0.5)" : "none",
-    "&:hover": {
-      borderColor: "#4E41F0",
-    },
+    "&:hover": { borderColor: "#4E41F0" },
   }),
   menu: (base) => ({
     ...base,
@@ -104,13 +102,13 @@ const customStyles: StylesConfig<{ value: string; label: string }, false> = {
   }),
 };
 
-const Entradas = () => {
+const Entradas: React.FC = () => {
   const navigate = useNavigate();
   const [filtroMes, setFiltroMes] = useState<string>("");
   const [filtroAno, setFiltroAno] = useState<string>("");
-  const [entradas, setEntradas] = useState([]);
-  const [currentPage, setCurrentPage] = useState(0);
-  const [totalPages, setTotalPages] = useState(1);
+  const [entradas, setEntradas] = useState<any[]>([]);
+  const [currentPage, setCurrentPage] = useState<number>(0);
+  const [totalPages, setTotalPages] = useState<number>(1);
   const pageSize = 10;
 
   const meses = [
@@ -136,25 +134,22 @@ const Entradas = () => {
 
   const fetchEntradas = async () => {
     try {
-      let url = "https://controle-de-estoque-60ju.onrender.com/api/entradas";
-      let params: any = {
-        page: currentPage,
-        size: pageSize,
-      };
+      let endpoint = "/api/entradas";
+      const params: any = { page: currentPage, size: pageSize };
 
       if (filtroMes && filtroAno) {
-        url += "/filtrar";
+        endpoint += "/filtrar";
         params.mes = filtroMes;
         params.ano = filtroAno;
       } else if (filtroMes) {
-        url += "/filtrar/mes";
+        endpoint += "/filtrar/mes";
         params.mes = filtroMes;
       } else if (filtroAno) {
-        url += "/filtrar/ano";
+        endpoint += "/filtrar/ano";
         params.ano = filtroAno;
       }
 
-      const response = await axios.get(url, { params });
+      const response = await api.get(endpoint, { params });
       const dados = response.data;
       setEntradas(dados.content);
       setTotalPages(dados.totalPages);
@@ -172,15 +167,13 @@ const Entradas = () => {
   }, [currentPage, filtroMes, filtroAno]);
 
   const handlePageChange = (page: number) => {
-    if (page >= 0 && page < totalPages) {
-      setCurrentPage(page);
-    }
+    if (page >= 0 && page < totalPages) setCurrentPage(page);
   };
 
   return (
     <div>
       <ContentHeader title="Entradas" lineColor="#4E41F0">
-        <BackButton onClick={() => navigate("/controle_estoque")}>
+        <BackButton onClick={() => navigate("/controle_estoque")}> 
           <IoArrowBack size={16} /> Voltar
         </BackButton>
       </ContentHeader>
@@ -212,7 +205,7 @@ const Entradas = () => {
             </tr>
           </thead>
           <tbody>
-            {entradas.map((entrada: any) => (
+            {entradas.map((entrada) => (
               <tr key={entrada.id}>
                 <Td>{entrada.nomeProduto}</Td>
                 <Td>{entrada.quantidade}</Td>
@@ -229,7 +222,9 @@ const Entradas = () => {
           >
             Anterior
           </PaginationButton>
-          <Span>Página {currentPage + 1} de {totalPages}</Span>
+          <Span>
+            Página {currentPage + 1} de {totalPages}
+          </Span>
           <PaginationButton
             active={currentPage + 1 < totalPages}
             onClick={() => handlePageChange(currentPage + 1)}
