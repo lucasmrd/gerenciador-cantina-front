@@ -13,7 +13,7 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       // executa logout globalmente
       globalSignOut();
-      //alert('Sua sessão expirou ou não está autorizada. Faça login novamente.');
+      alert('Sua sessão expirou ou não está autorizada. Faça login novamente.');
     }
     return Promise.reject(error);
   }

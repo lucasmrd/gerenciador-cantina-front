@@ -40,7 +40,7 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
 
     setAuthToken(token);
     setLogged(true);
-    /*
+    
     try {
       const { exp, nome } = jwtDecode<ITokenPayload>(token);
       setUserName(nome);
@@ -63,7 +63,7 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
       console.error('Erro ao decodificar o token:', e);
       signOut();
     }
-      */
+      
   }, []);
 
   const signIn = async (login: string, senha: string) => {
@@ -76,14 +76,14 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
 
       const { nome, exp } = jwtDecode<ITokenPayload>(token);
       setUserName(nome);
-      /*
+      
       const expiresAt = exp * 1000;
       const now = Date.now();
       const timeout = expiresAt - now;
       setTimeout(() => {
         alert('Sua sessão expirou. Você será deslogado.');
         signOut();
-      }, timeout);*/
+      }, timeout);
     } catch (err) {
       alert('Usuário ou senha inválidos!');
     }
