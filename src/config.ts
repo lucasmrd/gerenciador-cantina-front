@@ -1,1 +1,1 @@
-export const API_BASE_URL = "http://107.20.74.217:8080";
+export const API_BASE_URL = "https://api.107-20-74-217.nip.io";
