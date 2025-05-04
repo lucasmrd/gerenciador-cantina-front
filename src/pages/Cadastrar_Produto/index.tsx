@@ -3,6 +3,7 @@ import ContentHeader from "../../components/ContentHeader";
 import styled from "styled-components";
 import { useNavigate } from "react-router-dom";
 import { IoArrowBack } from "react-icons/io5";
+import api from "../../api";
 
 const Container = styled.div``;
 
@@ -120,31 +121,21 @@ const CadastroProdutos: React.FC = () => {
 
   const handleAddProduct = async (e: FormEvent) => {
     e.preventDefault();
-
+  
     const payload = {
       nome: formData.nome,
       categoria: formData.categoria,
       quantidade: parseInt(formData.quantidade, 10),
       preco: parseFloat(formData.preco),
     };
-
+  
     try {
-      const response = await fetch("http://localhost:8080/api/produtos", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        throw new Error("Erro ao cadastrar produto");
-      }
-
+      const response = await api.post("/api/produtos", payload);
       setFormData({ nome: "", categoria: "", quantidade: "", preco: "" });
-      console.log("Produto cadastrado com sucesso!");
-    } catch (error) {
-      console.error("Erro ao cadastrar produto:", error);
+      console.log("Produto cadastrado com sucesso:", response.data);
+    } catch (error: any) {
+      console.error("Erro ao cadastrar produto:", error.response?.data || error.message);
+      alert("Erro ao cadastrar produto. Verifique os dados e tente novamente.");
     }
   };
 

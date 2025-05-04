@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import Select from 'react-select';
 import styled from 'styled-components';
-import { useNavigate } from "react-router-dom";
-import { IoArrowBack } from "react-icons/io5";
-import ContentHeader from "../../components/ContentHeader";
-import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
+import { IoArrowBack } from 'react-icons/io5';
+import ContentHeader from '../../components/ContentHeader';
+import api from '../../api';
 
 const Container = styled.div`
   width: 100%;
@@ -78,50 +78,48 @@ interface Produto {
 }
 
 const RegistroEntradas: React.FC = () => {
-  const navigate = useNavigate(); 
+  const navigate = useNavigate();
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [produtoSelecionado, setProdutoSelecionado] = useState<Produto | null>(null);
   const [quantidade, setQuantidade] = useState<number>(0);
   const [data, setData] = useState<string>('');
 
   useEffect(() => {
-    axios.get('http://localhost:8080/api/produtos?page=0&size=10')
-      .then(response => {
-        setProdutos(response.data.content);
-      })
+    api
+      .get('/api/produtos', { params: { page: 0, size: 10 } })
+      .then(response => setProdutos(response.data.content))
       .catch(error => {
-        console.error("Erro ao buscar produtos:", error);
-        alert("Erro ao carregar a lista de produtos.");
+        console.error('Erro ao buscar produtos:', error);
+        alert('Erro ao carregar a lista de produtos.');
       });
   }, []);
 
   const handleAddEntrada = async () => {
-    if (produtoSelecionado && quantidade > 0 && data) {
-      const entradaData = {
-        idProduto: produtoSelecionado.id,
-        quantidade,
-        data
-      };
+    if (!produtoSelecionado || quantidade <= 0 || !data) {
+      alert('Por favor, preencha todos os campos.');
+      return;
+    }
 
-      try {
-        await axios.post("http://localhost:8080/api/entradas", entradaData, {
-          headers: { "Content-Type": "application/json" }
-        });
-        alert("Entrada registrada com sucesso!");
-      } catch (error) {
-        console.error("Erro ao registrar entrada:", error);
-        alert("Erro ao registrar entrada.");
-      }
-    } else {
-      alert("Por favor, preencha todos os campos.");
+    const entradaData = {
+      idProduto: produtoSelecionado.id,
+      quantidade,
+      data,
+    };
+
+    try {
+      await api.post('/api/entradas', entradaData);
+      alert('Entrada registrada com sucesso!');
+    } catch (error) {
+      console.error('Erro ao registrar entrada:', error);
+      alert('Erro ao registrar entrada.');
     }
   };
 
   return (
     <div>
       <ContentHeader title="Registrar Entrada" lineColor="#4E41F0">
-        <BackButton onClick={() => navigate("/controle_estoque")}>
-          <IoArrowBack size={16}/> Voltar
+        <BackButton onClick={() => navigate('/controle_estoque')}>
+          <IoArrowBack size={16} /> Voltar
         </BackButton>
       </ContentHeader>
 
@@ -131,24 +129,24 @@ const RegistroEntradas: React.FC = () => {
 
           <SelectContainer>
             <Select
-              options={produtos.map(produto => ({
-                value: produto.id,
-                label: produto.nome
-              }))}
-              onChange={(selected) => setProdutoSelecionado(produtos.find(prod => prod.id === selected?.value) || null)}
+              options={produtos.map(p => ({ value: p.id, label: p.nome }))}
+              onChange={selected =>
+                setProdutoSelecionado(
+                  produtos.find(prod => prod.id === selected?.value) || null
+                )
+              }
               placeholder="Selecione o Produto"
               styles={{
                 option: (provided, state) => ({
                   ...provided,
-                  color: 'black', 
-                  backgroundColor: state.isFocused ? '#eee' : 'white' 
+                  color: 'black',
+                  backgroundColor: state.isFocused ? '#eee' : 'white',
                 }),
-                singleValue: (provided) => ({
+                singleValue: provided => ({
                   ...provided,
-                  color: 'black' 
-                })
+                  color: 'black',
+                }),
               }}
-        
             />
           </SelectContainer>
 
@@ -156,13 +154,13 @@ const RegistroEntradas: React.FC = () => {
             type="number"
             placeholder="Quantidade"
             value={quantidade}
-            onChange={(e) => setQuantidade(Number(e.target.value))}
+            onChange={e => setQuantidade(Number(e.target.value))}
           />
 
           <Input
             type="date"
             value={data}
-            onChange={(e) => setData(e.target.value)}
+            onChange={e => setData(e.target.value)}
           />
 
           <Button onClick={handleAddEntrada}>Registrar Entrada</Button>
