@@ -4,6 +4,8 @@ import styled from "styled-components";
 import { useNavigate } from "react-router-dom";
 import { IoArrowBack } from "react-icons/io5";
 import api from "../../api";
+import { toast, ToastContainer } from 'react-toastify'; 
+import 'react-toastify/dist/ReactToastify.css';
 
 const Container = styled.div``;
 
@@ -131,11 +133,11 @@ const CadastroProdutos: React.FC = () => {
   
     try {
       const response = await api.post("/api/produtos", payload);
+      toast.success('Produto registrado com sucesso!');
       setFormData({ nome: "", categoria: "", quantidade: "", preco: "" });
-      console.log("Produto cadastrado com sucesso:", response.data);
     } catch (error: any) {
       console.error("Erro ao cadastrar produto:", error.response?.data || error.message);
-      alert("Erro ao cadastrar produto. Verifique os dados e tente novamente.");
+      toast.error("Erro ao cadastrar produto. Verifique os dados e tente novamente!");
     }
   };
 
@@ -164,6 +166,7 @@ const CadastroProdutos: React.FC = () => {
           <Input type="number" name="quantidade" placeholder="Quantidade" value={formData.quantidade} onChange={handleInputChange} required />
           <Input type="number" step="0.01" name="preco" placeholder="Preço unitário" value={formData.preco} onChange={handleInputChange} required />
           <Button type="submit">Adicionar Produto</Button>
+          <ToastContainer position="top-right" autoClose={3000} hideProgressBar /> {/* adiciona container */}
         </Form>
       </Questionario>
     </Container>

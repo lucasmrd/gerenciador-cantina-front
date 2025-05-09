@@ -14,6 +14,7 @@ const Filters = styled.div`
   flex-wrap: wrap;
   gap: 10px;
   margin-top: 20px;
+  align-items: center;
 `;
 
 const Input = styled.input`
@@ -28,6 +29,13 @@ const Select = styled.select`
   font-size: 14px;
   border-radius: 4px;
   border: 1px solid #ccc;
+`;
+
+const CheckboxLabel = styled.label`
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
 `;
 
 const TableContainer = styled.div`
@@ -99,11 +107,18 @@ const Relatorio: React.FC = () => {
   const [ano, setAno] = useState(new Date().getFullYear());
   const [currentPage, setCurrentPage] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
+  const [apenasFolha, setApenasFolha] = useState(false);
+  const anosFixos = [2024, 2025, 2026, 2027];
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await api.get("/api/funcionarios/gastos-funcionarios", {
+        // escolhe endpoint conforme o checkbox
+        const endpoint = apenasFolha
+          ? "/api/funcionarios/gastos-funcionarios/folha"
+          : "/api/funcionarios/gastos-funcionarios";
+
+        const response = await api.get(endpoint, {
           params: { mes, ano, page: currentPage, size: 10 },
         });
         const dados = response.data;
@@ -115,34 +130,51 @@ const Relatorio: React.FC = () => {
     };
 
     fetchData();
-  }, [mes, ano, currentPage]);
+  }, [mes, ano, currentPage, apenasFolha]);
 
   return (
     <Container>
-      <ContentHeader title="Relatório de Gastos por Funcionário" lineColor="#4E41F0">
+      <ContentHeader title="Relatório de Gastos Mensal" lineColor="#4E41F0">
         <BackButton onClick={() => navigate("/controle_estoque")}>
           <IoArrowBack size={16} /> Voltar
         </BackButton>
       </ContentHeader>
 
       <Filters>
-        <Select value={mes} onChange={(e) => { setMes(Number(e.target.value)); setCurrentPage(0); }}>
-          {[...Array(12)].map((_, index) => (
+        <Select
+          value={mes}
+          onChange={(e) => {
+            setMes(Number(e.target.value));
+            setCurrentPage(0);
+          }}
+        >
+          
+          {[...Array(12)].map((_, index) => {
+            // obtém o nome do mês e capitaliza só a primeira letra
+            const nomeMes = new Date(0, index)
+            .toLocaleString("pt-BR", { month: "long" });
+            const nomeMesCapitalizado = nomeMes.charAt(0).toUpperCase() + nomeMes.slice(1);
+
+            return (
             <option key={index + 1} value={index + 1}>
-              {index + 1} - {new Date(0, index).toLocaleString("pt-BR", { month: "long" })}
+            {nomeMesCapitalizado}
+            </option>
+          );
+        })}
+        </Select>
+        
+        <Select
+          value={ano}
+          onChange={(e) => {
+            setAno(Number(e.target.value));
+            setCurrentPage(0);
+          }}
+>
+          {anosFixos.map((y) => (
+            <option key={y} value={y}>
+              {y}
             </option>
           ))}
-        </Select>
-
-        <Select value={ano} onChange={(e) => { setAno(Number(e.target.value)); setCurrentPage(0); }}>
-          {[...Array(5)].map((_, index) => {
-            const y = new Date().getFullYear() - index;
-            return (
-              <option key={y} value={y}>
-                {y}
-              </option>
-            );
-          })}
         </Select>
 
         <Input
@@ -151,6 +183,18 @@ const Relatorio: React.FC = () => {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
+
+        <CheckboxLabel>
+          <input
+            type="checkbox"
+            checked={apenasFolha}
+            onChange={() => {
+              setApenasFolha((prev) => !prev);
+              setCurrentPage(0);
+            }}
+          />
+          Apenas “Desconto em folha”
+        </CheckboxLabel>
       </Filters>
 
       <TableContainer>
@@ -169,7 +213,9 @@ const Relatorio: React.FC = () => {
               .map((item) => (
                 <tr key={item.idFuncionario}>
                   <Td>{item.nomeFuncionario}</Td>
-                  <Td>{item.valorTotalGasto.toFixed(2).replace(".", ",")}</Td>
+                  <Td>
+                    {item.valorTotalGasto.toFixed(2).replace(".", ",")}
+                  </Td>
                 </tr>
               ))}
           </tbody>
@@ -177,14 +223,19 @@ const Relatorio: React.FC = () => {
       </TableContainer>
 
       <Pagination>
-        <Button onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 0))} disabled={currentPage === 0}>
+        <Button
+          onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 0))}
+          disabled={currentPage === 0}
+        >
           Anterior
         </Button>
         <span>
           Página {currentPage + 1} de {totalPages}
         </span>
         <Button
-          onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages - 1))}
+          onClick={() =>
+            setCurrentPage((prev) => Math.min(prev + 1, totalPages - 1))
+          }
           disabled={currentPage === totalPages - 1}
         >
           Próxima

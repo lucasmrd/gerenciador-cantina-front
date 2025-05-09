@@ -6,6 +6,8 @@ import { useNavigate } from "react-router-dom";
 import { IoArrowBack } from "react-icons/io5";
 import Select from "react-select";
 import api from "../../api";
+import { toast, ToastContainer } from 'react-toastify'; 
+import 'react-toastify/dist/ReactToastify.css';
 
 // Styled-components
 const Container = styled.div``;
@@ -38,6 +40,7 @@ const Input = styled.input<{ alterada?: boolean }>`
   border-radius: 4px;
   border: 1px solid ${(props) => (props.alterada ? "#ccc" : "#aad")};
   background-color: ${(props) => (props.alterada ? "#fff" : "#f0f8ff")};
+  font-size: 1rem;
 `;
 
 const ButtonContainer = styled.div`
@@ -102,8 +105,8 @@ const ListItem = styled.li`
 
 const RemoveButton = styled.button`
   padding: 6px 10px;
-  background-color: ${(props) => props.theme.colors.danger};
-  color: #fff;
+  background-color: ${(props) => props.theme.colors.warning};
+  color: ${(props) => props.theme.colors.white};
   border: none;
   border-radius: 4px;
   font-size: 14px;
@@ -111,6 +114,7 @@ const RemoveButton = styled.button`
   margin-left: 10px;
 
   &:hover {
+    opacity: 0.8;
     background-color: ${(props) => props.theme.colors.warning};
   }
 `;
@@ -164,6 +168,11 @@ interface Funcionario {
   nome: string;
 }
 
+interface FuncionarioOption {
+  value: number;
+  label: string;
+}
+
 interface Produto {
   id: number;
   nome: string;
@@ -196,9 +205,20 @@ const Vendas: React.FC = () => {
   const [produtoSelecionado, setProdutoSelecionado] = useState<any | null>(null);
   const [quantidade, setQuantidade] = useState<number | string>("");
   const [produtoSelectKey, setProdutoSelectKey] = useState(0);
+  const [funcionarioOption, setFuncionarioOption] = useState<FuncionarioOption | null>(null);
 
-  const hoje = new Date().toISOString().split("T")[0];
-  const [dataVenda, setDataVenda] = useState(hoje);
+  // Função para obter data de hoje em SP
+  const getDataHoje = (): string => {
+    const hoje = new Date(
+      new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' })
+    );
+    const ano = hoje.getFullYear();
+    const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+    const dia = String(hoje.getDate()).padStart(2, '0');
+    return `${ano}-${mes}-${dia}`;
+  };
+
+  const [dataVenda, setDataVenda] = useState<string>(getDataHoje());
   const [dataAlterada, setDataAlterada] = useState(false);
 
   const adicionarItem = () => {
@@ -288,7 +308,15 @@ const Vendas: React.FC = () => {
 
   const handleDataChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setDataVenda(e.target.value);
-    setDataAlterada(e.target.value !== hoje);
+        // marca alterada se for diferente da data inicial
+        const hojeSP = new Date(
+          new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' })
+        );
+        const ano = hojeSP.getFullYear();
+        const mes = String(hojeSP.getMonth() + 1).padStart(2, '0');
+        const dia = String(hojeSP.getDate()).padStart(2, '0');
+        const isoHoje = `${ano}-${mes}-${dia}`;
+        setDataAlterada(e.target.value !== isoHoje);
   };
 
   const finalizarVenda = async () => {
@@ -309,11 +337,21 @@ const Vendas: React.FC = () => {
 
     try {
       await api.post("/api/vendas", payload);
-      alert("Venda registrada com sucesso!");
-      navigate("/controle_estoque");
-    } catch (error) {
+      toast.success('Venda registrada com sucesso!');
+      setVenda({ funcionarioId: "", itens: [], formaPagamento: "" });
+      setItemTemp(null);
+      setProdutoSelecionado(null);
+      setQuantidade("");
+      setProdutoSelectKey((prev) => prev + 1);
+      setFuncionarioOption(null); // <-- limpa funcionario select
+      setDataVenda(getDataHoje());
+      setDataAlterada(false);
+    } catch (error: any) {
       console.error("Erro ao registrar venda:", error);
-      alert("Erro ao registrar venda.");
+
+      const mensagem =
+        error?.response?.data?.mensagem || "Erro ao registrar venda!";
+      toast.error(mensagem);
     }
   };
 
@@ -387,18 +425,19 @@ const Vendas: React.FC = () => {
           loadOptions={carregarFuncionarios}
           defaultOptions
           additional={{ page: 0 }}
-          onChange={(selectedOption: any) =>
-            setVenda({ ...venda, funcionarioId: selectedOption.value.toString() })
-          }
+          value={funcionarioOption}
+          onChange={(opt: any) => {
+            setFuncionarioOption(opt);
+            setVenda(v => ({ ...v, funcionarioId: opt.value.toString() }));
+          }}
         />
 
         <Label>Forma de Pagamento:</Label>
         <Select
           styles={customSelectStyles}
           options={formaPagamentoOptions}
-          onChange={(selectedOption: any) =>
-            setVenda({ ...venda, formaPagamento: selectedOption.value })
-          }
+          value={formaPagamentoOptions.find(o => o.value === venda.formaPagamento) || null} // já controlado
+          onChange={(opt: any) => setVenda(v => ({ ...v, formaPagamento: opt.value }))}
         />
 
         <Label>Data:</Label>
@@ -410,6 +449,7 @@ const Vendas: React.FC = () => {
         />
 
         <Button2 onClick={finalizarVenda}>Finalizar Venda</Button2>
+        <ToastContainer position="top-right" autoClose={3000} hideProgressBar /> {/* adiciona container */}
       </ContainerForm>
     </Container>
   );
