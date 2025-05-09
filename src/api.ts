@@ -1,11 +1,13 @@
 import axios from "axios";
 import { API_BASE_URL } from "./config";
 import { globalSignOut } from './hooks/auth';
+import NProgress from 'nprogress';
+import 'nprogress/nprogress.css';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
 });
-
+/*
 api.interceptors.response.use(
   response => response,
   error => {
@@ -18,5 +20,28 @@ api.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+*/
+NProgress.configure({
+  minimum: 0.2,      // começa já com 20% de preenchimento
+  trickleSpeed: 100, // gota a gota a cada 100 ms
+  showSpinner: true
+})
+
+api.interceptors.request.use(config => {
+  NProgress.start()
+  return config
+})
+
+api.interceptors.response.use(
+  res => {
+    NProgress.done()
+    return res
+  },
+  err => {
+    NProgress.done()
+    return Promise.reject(err)
+  }
+)
+
 
 export default api;

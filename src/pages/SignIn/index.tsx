@@ -32,7 +32,7 @@ const SignIn: React.FC = () => {
     <Container>
       <Logo>
         <img src={logoImg} alt="Minha carteira" />
-        <h2>Sistema Cantina</h2>
+        <h2>Cantina</h2>
       </Logo>
 
       <Form onSubmit={handleSubmit}>

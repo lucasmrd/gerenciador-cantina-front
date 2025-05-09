@@ -5,6 +5,8 @@ import { useNavigate } from 'react-router-dom';
 import { IoArrowBack } from 'react-icons/io5';
 import ContentHeader from '../../components/ContentHeader';
 import api from '../../api';
+import { toast, ToastContainer } from 'react-toastify'; 
+import 'react-toastify/dist/ReactToastify.css';
 
 const Container = styled.div`
   width: 100%;
@@ -81,8 +83,18 @@ const RegistroEntradas: React.FC = () => {
   const navigate = useNavigate();
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [produtoSelecionado, setProdutoSelecionado] = useState<Produto | null>(null);
-  const [quantidade, setQuantidade] = useState<number>(0);
+  const [quantidade, setQuantidade] = useState<string>('')
   const [data, setData] = useState<string>('');
+
+  const getDataHoje = (): string => {
+    const hoje = new Date(
+      new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' })
+    );
+    const ano = hoje.getFullYear();
+    const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+    const dia = String(hoje.getDate()).padStart(2, '0');
+    return `${ano}-${mes}-${dia}`;
+  };
 
   useEffect(() => {
     api
@@ -92,26 +104,32 @@ const RegistroEntradas: React.FC = () => {
         console.error('Erro ao buscar produtos:', error);
         alert('Erro ao carregar a lista de produtos.');
       });
+
+      setData(getDataHoje());
   }, []);
 
   const handleAddEntrada = async () => {
-    if (!produtoSelecionado || quantidade <= 0 || !data) {
+    const qNum = Number(quantidade)
+    if (!produtoSelecionado || qNum <= 0 || !data) {
       alert('Por favor, preencha todos os campos.');
       return;
     }
 
     const entradaData = {
       idProduto: produtoSelecionado.id,
-      quantidade,
+      quantidade: qNum,
       data,
     };
 
     try {
       await api.post('/api/entradas', entradaData);
-      alert('Entrada registrada com sucesso!');
+      toast.success('Entrada registrada com sucesso!');
+      setProdutoSelecionado(null);
+      setQuantidade('');
+      setData(getDataHoje());
     } catch (error) {
       console.error('Erro ao registrar entrada:', error);
-      alert('Erro ao registrar entrada.');
+      toast.error('Erro ao registrar entrada!');
     }
   };
 
@@ -130,6 +148,11 @@ const RegistroEntradas: React.FC = () => {
           <SelectContainer>
             <Select
               options={produtos.map(p => ({ value: p.id, label: p.nome }))}
+              value={
+                produtoSelecionado
+                  ? { value: produtoSelecionado.id, label: produtoSelecionado.nome }
+                  : null
+              }
               onChange={selected =>
                 setProdutoSelecionado(
                   produtos.find(prod => prod.id === selected?.value) || null
@@ -153,8 +176,8 @@ const RegistroEntradas: React.FC = () => {
           <Input
             type="number"
             placeholder="Quantidade"
-            value={quantidade}
-            onChange={e => setQuantidade(Number(e.target.value))}
+            value={quantidade}                    
+            onChange={e => setQuantidade(e.target.value)} 
           />
 
           <Input
@@ -164,6 +187,7 @@ const RegistroEntradas: React.FC = () => {
           />
 
           <Button onClick={handleAddEntrada}>Registrar Entrada</Button>
+          <ToastContainer position="top-right" autoClose={3000} hideProgressBar /> {/* adiciona container */}
         </ContainerForm>
       </Container>
     </div>

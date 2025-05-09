@@ -21,36 +21,24 @@ export const Logo = styled.div`
     > h2 {
         color: ${props => props.theme.colors.white};
         margin-left: 7px;
-        font-size: 36px;
     }
 
     > img {
-        width: 52px;
-        height: 52px;
+        width: 40px;
+        height: 40px;
         border-radius: 7px;
     }
 `;
 
 
 export const Form = styled.form`
-    width: 570px;
-    height: 320px;
+    width: 300px;
+    height: 300px;
 
     padding: 30px;
 
     border-radius: 10px;
     background-color: ${props => props.theme.colors.tertiary};
-
-    > input {
-        width: 100%;
-        height: 38px;
-        font-size: 14px;
-    }
-
-    > button {
-        margin-top: 15px;
-    }
-    
 `;
 
 
