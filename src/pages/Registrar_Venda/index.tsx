@@ -365,6 +365,19 @@ const Vendas: React.FC = () => {
       <ContainerForm>
         <Title>Venda</Title>
 
+        <Label>Funcionário:</Label>
+        <AsyncPaginate
+          styles={customSelectStyles}
+          loadOptions={carregarFuncionarios}
+          defaultOptions
+          additional={{ page: 0 }}
+          value={funcionarioOption}
+          onChange={(opt: any) => {
+            setFuncionarioOption(opt);
+            setVenda(v => ({ ...v, funcionarioId: opt.value.toString() }));
+          }}
+        />
+
         <Label>Produto:</Label>
         <AsyncPaginate
           key={produtoSelectKey}
@@ -418,19 +431,6 @@ const Vendas: React.FC = () => {
           </List>
           <strong>Total: R${calcularTotalVenda().toFixed(2)}</strong>
         </Resumo>
-
-        <Label>Funcionário:</Label>
-        <AsyncPaginate
-          styles={customSelectStyles}
-          loadOptions={carregarFuncionarios}
-          defaultOptions
-          additional={{ page: 0 }}
-          value={funcionarioOption}
-          onChange={(opt: any) => {
-            setFuncionarioOption(opt);
-            setVenda(v => ({ ...v, funcionarioId: opt.value.toString() }));
-          }}
-        />
 
         <Label>Forma de Pagamento:</Label>
         <Select
