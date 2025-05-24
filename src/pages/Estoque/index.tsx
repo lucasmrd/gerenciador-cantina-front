@@ -161,9 +161,18 @@ const List: React.FC = () => {
   const [editMode, setEditMode] = useState<string | null>(null);
   const [updatedProduct, setUpdatedProduct] = useState<Partial<Product>>({});
 
+
+  const formatCategory = (cat: string) =>
+  cat.charAt(0).toUpperCase() + cat.slice(1).toLowerCase();
+
   useEffect(() => {
+    const params: any = { page, size: 15 };
+    if (filter !== 'all') {
+      params.categoria = filter;
+    }
+
     api
-      .get('/api/produtos', { params: { page, size: 15 } })
+      .get('/api/produtos', { params })
       .then((response) => {
         setProducts(response.data.content);
         setTotalPages(response.data.totalPages);
@@ -171,7 +180,7 @@ const List: React.FC = () => {
       .catch((error) => {
         console.error('Erro ao buscar produtos', error);
       });
-  }, [page]);
+  }, [page, filter]);
 
   const handleEdit = (id: string) => {
     setEditMode(id);
@@ -214,15 +223,8 @@ const List: React.FC = () => {
 
   const handleFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setFilter(e.target.value);
+    setPage(0);
   };
-
-  const filteredProducts =
-    filter === "all"
-      ? products
-      : products.filter(
-          (product) =>
-            product.categoria.toLowerCase() === filter.toLowerCase()
-        );
 
   return (
     <div>
@@ -239,7 +241,7 @@ const List: React.FC = () => {
       </ContentHeader>
 
       <ProductList>
-        {filteredProducts.map((product) => (
+        {products.map((product) => (
           <ProductCard key={product.id}>
             {editMode === product.id ? (
               <EditForm>
@@ -295,7 +297,7 @@ const List: React.FC = () => {
               <>
                 <ProductName>{product.nome}</ProductName>
                 <ProductInfo>
-                  Categoria: <span>{product.categoria}</span>
+                  Categoria: <span>{formatCategory(product.categoria)}</span>
                 </ProductInfo>
                 <ProductInfo>
                   Preço: <span>R$ {product.preco.toFixed(2)}</span>
