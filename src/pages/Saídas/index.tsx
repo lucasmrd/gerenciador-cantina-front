@@ -8,6 +8,9 @@ import { AiOutlineClose } from "react-icons/ai";
 import { StylesConfig } from "react-select";
 import api from "../../api";
 
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
+
 const Container = styled.div`
   max-width: 1000px;
   margin: auto;
@@ -22,6 +25,13 @@ const Title = styled.h2`
   margin-bottom: 20px;
   font-size: 32px;
   color: ${(props) => props.theme.colors.white};
+`;
+
+const HeaderButtonsContainer = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-bottom: 20px;
 `;
 
 const FilterContainer = styled.div`
@@ -83,6 +93,21 @@ const BackButton = styled.button`
 
   &:hover {
     text-decoration: none;
+  }
+`;
+
+const ExportButton = styled.button`
+  padding: 10px 20px;
+  border-radius: 7px;
+  background-color: #4e41f0;
+  color: white;
+  font-size: 18px;
+  font-weight: bold;
+  cursor: pointer;
+  border: none;
+
+  &:hover {
+    background-color: #3c35d2;
   }
 `;
 
@@ -192,40 +217,126 @@ const Saidas: React.FC = () => {
     if (page >= 0 && page < totalPages) setCurrentPage(page);
   };
 
+  const exportarParaExcel = async () => {
+    try {
+      let todasSaidas: any[] = [];
+      let pagina = 0;
+      let totalPaginasExport = 1;
+      const sizeExport = 1000;
+
+      while (pagina < totalPaginasExport) {
+        let endpoint = "/api/vendas";
+        const params: any = { page: pagina, size: sizeExport };
+
+        if (filtroMes && filtroAno) {
+          endpoint += "/filtrar";
+          params.mes = filtroMes;
+          params.ano = filtroAno;
+        } else if (filtroMes) {
+          endpoint += "/filtrar/mes";
+          params.mes = filtroMes;
+        } else if (filtroAno) {
+          endpoint += "/filtrar/ano";
+          params.ano = filtroAno;
+        }
+
+        const response = await api.get(endpoint, { params });
+        const dados = response.data;
+        todasSaidas = todasSaidas.concat(dados.content);
+        totalPaginasExport = dados.totalPages;
+        pagina++;
+      }
+
+      const dadosExcel = todasSaidas.map((saida) => ({
+        "Funcionário": saida.funcionario,
+        "Produtos": (saida.itens || [])
+          .map(
+            (item: any) =>
+              `${item.nomeProduto} (${item.quantidade}) - R$ ${item.valor.toFixed(
+                2
+              )}`
+          )
+          .join("\n"),
+        "Pagamento": saida.pagamento,
+        "Data": saida.data.split("-").reverse().join("/"),
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(dadosExcel);
+      worksheet["!cols"] = [
+        { wch: 25 },
+        { wch: 50 },
+        { wch: 15 },
+        { wch: 15 },
+      ];
+
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Relatório Saídas");
+
+      const excelBuffer = XLSX.write(workbook, {
+        bookType: "xlsx",
+        type: "array",
+        cellStyles: true,
+      });
+
+      const blob = new Blob([excelBuffer], {
+        type:
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8",
+      });
+
+      saveAs(blob, `relatorio_saidas_${new Date().toISOString()}.xlsx`);
+    } catch (error) {
+      console.error("Erro ao exportar para Excel:", error);
+    }
+  };
+
   return (
     <div>
-      <ContentHeader title="Saídas" lineColor="#4E41F0">
-        <BackButton onClick={() => navigate("/controle_estoque")}> 
-          <IoArrowBack size={16} /> Voltar
-        </BackButton>
+      <ContentHeader title="Saídas" lineColor="#4E41F0" >
+      <BackButton onClick={() => navigate("/controle_estoque")}> 
+        <IoArrowBack size={16} /> Voltar
+      </BackButton>
       </ContentHeader>
-
       <Container>
         <Title>Saídas de Produtos</Title>
 
-        <FilterContainer>
-          <FilterWrapper>
-            <Select
-              options={meses}
-              placeholder="Filtrar por mês"
-              value={meses.find((m) => m.value === filtroMes) || null}
-              onChange={(opt) => setFiltroMes(opt?.value || "")}
-              styles={customStyles}
-            />
-            {filtroMes && <ClearButton onClick={() => setFiltroMes("")}><AiOutlineClose /></ClearButton>}
-          </FilterWrapper>
+<FilterContainer>
+  <div style={{ display: "flex", gap: "10px" }}>
+    <FilterWrapper>
+      <Select
+        options={meses}
+        placeholder="Filtrar por mês"
+        value={meses.find((m) => m.value === filtroMes) || null}
+        onChange={(opt) => setFiltroMes(opt?.value || "")}
+        styles={customStyles}
+      />
+      {filtroMes && (
+        <ClearButton onClick={() => setFiltroMes("")}>
+          <AiOutlineClose />
+        </ClearButton>
+      )}
+    </FilterWrapper>
 
-          <FilterWrapper>
-            <Select
-              options={anos}
-              placeholder="Filtrar por ano"
-              value={anos.find((a) => a.value === filtroAno) || null}
-              onChange={(opt) => setFiltroAno(opt?.value || "")}
-              styles={customStyles}
-            />
-            {filtroAno && <ClearButton onClick={() => setFiltroAno("")}><AiOutlineClose /></ClearButton>}
-          </FilterWrapper>
-        </FilterContainer>
+    <FilterWrapper>
+      <Select
+        options={anos}
+        placeholder="Filtrar por ano"
+        value={anos.find((a) => a.value === filtroAno) || null}
+        onChange={(opt) => setFiltroAno(opt?.value || "")}
+        styles={customStyles}
+      />
+      {filtroAno && (
+        <ClearButton onClick={() => setFiltroAno("")}>
+          <AiOutlineClose />
+        </ClearButton>
+      )}
+    </FilterWrapper>
+  </div>
+
+  <ExportButton onClick={exportarParaExcel}>
+    Exportar Excel
+  </ExportButton>
+</FilterContainer>
+
 
         <Table>
           <thead>
@@ -243,7 +354,8 @@ const Saidas: React.FC = () => {
                 <Td>
                   {(saida.itens || []).map((item: any, idx: number) => (
                     <div key={idx}>
-                      • {item.nomeProduto} ({item.quantidade}) - R$ {item.valor.toFixed(2)}
+                      • {item.nomeProduto} ({item.quantidade}) - R${" "}
+                      {item.valor.toFixed(2)}
                     </div>
                   ))}
                 </Td>
@@ -261,7 +373,9 @@ const Saidas: React.FC = () => {
           >
             Anterior
           </PaginationButton>
-          <Span>Página {currentPage + 1} de {totalPages}</Span>
+          <Span>
+            Página {currentPage + 1} de {totalPages}
+          </Span>
           <PaginationButton
             onClick={() => handlePageChange(currentPage + 1)}
             disabled={currentPage + 1 === totalPages}

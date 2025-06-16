@@ -4,6 +4,8 @@ import ContentHeader from "../../components/ContentHeader";
 import { IoArrowBack } from "react-icons/io5";
 import { useNavigate } from "react-router-dom";
 import api from "../../api";
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
 
 const Container = styled.div`
   padding: 20px;
@@ -113,7 +115,6 @@ const Relatorio: React.FC = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // escolhe endpoint conforme o checkbox
         const endpoint = apenasFolha
           ? "/api/funcionarios/gastos-funcionarios/folha"
           : "/api/funcionarios/gastos-funcionarios";
@@ -121,6 +122,7 @@ const Relatorio: React.FC = () => {
         const response = await api.get(endpoint, {
           params: { mes, ano, page: currentPage, size: 10 },
         });
+
         const dados = response.data;
         setRelatorio(dados.content);
         setTotalPages(dados.totalPages);
@@ -131,6 +133,88 @@ const Relatorio: React.FC = () => {
 
     fetchData();
   }, [mes, ano, currentPage, apenasFolha]);
+
+  const exportarParaExcel = async () => {
+    try {
+      const endpoint = apenasFolha
+        ? "/api/funcionarios/gastos-funcionarios/folha"
+        : "/api/funcionarios/gastos-funcionarios";
+
+      let todosDados: RelatorioFuncionario[] = [];
+      let pagina = 0;
+      let totalPaginas = 1;
+
+      // Loop para pegar todas as páginas (em lotes de 1000)
+      while (pagina < totalPaginas) {
+        const response = await api.get(endpoint, {
+          params: { mes, ano, page: pagina, size: 1000 },
+        });
+        const dados = response.data;
+        todosDados = todosDados.concat(dados.content);
+        totalPaginas = dados.totalPages;
+        pagina++;
+      }
+
+      // Filtra pela busca
+      const dadosFiltrados = todosDados.filter((item) =>
+        item.nomeFuncionario.toLowerCase().includes(search.toLowerCase())
+      );
+
+      // Mapear dados para exportação
+      const dadosParaExcel = dadosFiltrados.map((item) => ({
+        "Nome do Funcionário": item.nomeFuncionario,
+        "Valor Total Gasto (R$)": item.valorTotalGasto,
+      }));
+
+      // Cria worksheet
+      const worksheet = XLSX.utils.json_to_sheet(dadosParaExcel);
+
+      // Define largura das colunas
+      worksheet["!cols"] = [{ wch: 30 }, { wch: 20 }];
+
+      // Formata coluna de valor como moeda brasileira
+      for (let i = 2; i <= dadosParaExcel.length + 1; i++) {
+        const cellAddress = `B${i}`;
+        if (worksheet[cellAddress]) {
+          worksheet[cellAddress].t = "n"; // número
+          worksheet[cellAddress].z = 'R$#,##0.00'; // formato moeda BR
+        }
+      }
+
+      // Estiliza cabeçalho: negrito, cor branca, fundo azul, texto centralizado
+      const range = XLSX.utils.decode_range(worksheet["!ref"]!);
+      for (let C = range.s.c; C <= range.e.c; ++C) {
+        const cellAddress = XLSX.utils.encode_cell({ r: 0, c: C });
+        if (!worksheet[cellAddress]) continue;
+        worksheet[cellAddress].s = {
+          font: { bold: true, color: { rgb: "FFFFFF" } },
+          fill: { fgColor: { rgb: "4E41F0" } },
+          alignment: { horizontal: "center" },
+        };
+      }
+
+      // Cria workbook e adiciona planilha
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Relatório");
+
+      // Gera arquivo Excel com estilos
+      const excelBuffer = XLSX.write(workbook, {
+        bookType: "xlsx",
+        type: "array",
+        cellStyles: true,
+      });
+
+      const blob = new Blob([excelBuffer], {
+        type:
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8",
+      });
+
+      saveAs(blob, `relatorio_${mes}_${ano}.xlsx`);
+    } catch (error) {
+      console.error("Erro ao exportar:", error);
+      alert("Erro ao exportar para Excel.");
+    }
+  };
 
   return (
     <Container>
@@ -148,28 +232,27 @@ const Relatorio: React.FC = () => {
             setCurrentPage(0);
           }}
         >
-          
           {[...Array(12)].map((_, index) => {
-            // obtém o nome do mês e capitaliza só a primeira letra
-            const nomeMes = new Date(0, index)
-            .toLocaleString("pt-BR", { month: "long" });
-            const nomeMesCapitalizado = nomeMes.charAt(0).toUpperCase() + nomeMes.slice(1);
-
+            const nomeMes = new Date(0, index).toLocaleString("pt-BR", {
+              month: "long",
+            });
+            const nomeMesCapitalizado =
+              nomeMes.charAt(0).toUpperCase() + nomeMes.slice(1);
             return (
-            <option key={index + 1} value={index + 1}>
-            {nomeMesCapitalizado}
-            </option>
-          );
-        })}
+              <option key={index + 1} value={index + 1}>
+                {nomeMesCapitalizado}
+              </option>
+            );
+          })}
         </Select>
-        
+
         <Select
           value={ano}
           onChange={(e) => {
             setAno(Number(e.target.value));
             setCurrentPage(0);
           }}
->
+        >
           {anosFixos.map((y) => (
             <option key={y} value={y}>
               {y}
@@ -195,6 +278,8 @@ const Relatorio: React.FC = () => {
           />
           Apenas “Desconto em folha”
         </CheckboxLabel>
+
+        <Button onClick={exportarParaExcel}>Exportar Excel</Button>
       </Filters>
 
       <TableContainer>
@@ -213,9 +298,7 @@ const Relatorio: React.FC = () => {
               .map((item) => (
                 <tr key={item.idFuncionario}>
                   <Td>{item.nomeFuncionario}</Td>
-                  <Td>
-                    {item.valorTotalGasto.toFixed(2).replace(".", ",")}
-                  </Td>
+                  <Td>{item.valorTotalGasto.toFixed(2).replace(".", ",")}</Td>
                 </tr>
               ))}
           </tbody>
@@ -246,3 +329,4 @@ const Relatorio: React.FC = () => {
 };
 
 export default Relatorio;
+  
