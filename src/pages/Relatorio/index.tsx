@@ -109,28 +109,45 @@ const Relatorio: React.FC = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [apenasFolha, setApenasFolha] = useState(false);
   const anosFixos = [2024, 2025, 2026, 2027];
+  const [dataInicio, setDataInicio] = useState<string>("");  
+  const [dataFim, setDataFim] = useState<string>("");
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // escolhe endpoint conforme o checkbox
-        const endpoint = apenasFolha
-          ? "/api/funcionarios/gastos-funcionarios/folha"
-          : "/api/funcionarios/gastos-funcionarios";
+// escolhe endpoint: período ou mês/ano
+      let endpointBase = "/api/funcionarios/gastos-funcionarios";
+      
+      if (dataInicio && dataFim) {
+        endpointBase += apenasFolha
+        ? "/folha/periodo"
+        : "/periodo";
+      } else {
+        endpointBase += apenasFolha
+        ? "/folha"
+        : "";
+      }
+      const params: any = { page: currentPage, size: 10 };
+      if (dataInicio && dataFim) {
+        params.dataInicio = dataInicio;
+        params.dataFim = dataFim;
+      } else {
+        params.mes = mes;
+        params.ano = ano;
+      }
+      
+      const response = await api.get(endpointBase, { params });
 
-        const response = await api.get(endpoint, {
-          params: { mes, ano, page: currentPage, size: 10 },
-        });
-        const dados = response.data;
-        setRelatorio(dados.content);
-        setTotalPages(dados.totalPages);
+      const dados = response.data;
+      setRelatorio(dados.content);
+      setTotalPages(dados.totalPages);
       } catch (error) {
         console.error("Erro ao buscar dados:", error);
       }
     };
 
     fetchData();
-  }, [mes, ano, currentPage, apenasFolha]);
+  }, [mes, ano, dataInicio, dataFim, currentPage, apenasFolha]);
 
   return (
     <Container>
@@ -141,7 +158,7 @@ const Relatorio: React.FC = () => {
       </ContentHeader>
 
       <Filters>
-        <Select
+        {/* <Select
           value={mes}
           onChange={(e) => {
             setMes(Number(e.target.value));
@@ -161,9 +178,9 @@ const Relatorio: React.FC = () => {
             </option>
           );
         })}
-        </Select>
+        </Select> */}
         
-        <Select
+        {/* <Select
           value={ano}
           onChange={(e) => {
             setAno(Number(e.target.value));
@@ -175,8 +192,19 @@ const Relatorio: React.FC = () => {
               {y}
             </option>
           ))}
-        </Select>
-
+        </Select> */}
+        <Input
+          type="date"
+          value={dataInicio}
+          onChange={e => { setDataInicio(e.target.value); setCurrentPage(0); }}
+          placeholder="Data início"
+        />
+        <Input
+          type="date"
+          value={dataFim}
+          onChange={e => { setDataFim(e.target.value); setCurrentPage(0); }}
+          placeholder="Data fim"
+        />
         <Input
           type="text"
           placeholder="Pesquisar por nome..."

@@ -24,6 +24,7 @@ const ContainerForm = styled.div`
 
 const Title = styled.h2`
   text-align: center;
+  
   color: ${(props) => props.theme.colors.white};
 `;
 
