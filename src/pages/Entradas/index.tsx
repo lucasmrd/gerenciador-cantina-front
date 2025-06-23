@@ -7,6 +7,9 @@ import { IoArrowBack } from "react-icons/io5";
 import { StylesConfig } from "react-select";
 import api from "../../api";
 
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
+
 const Container = styled.div`
   max-width: 900px;
   margin: auto;
@@ -26,6 +29,7 @@ const FilterContainer = styled.div`
   display: flex;
   justify-content: space-between;
   margin-bottom: 20px;
+  align-items: center;
 `;
 
 const Table = styled.table`
@@ -57,6 +61,21 @@ const BackButton = styled.button`
 
   &:hover {
     text-decoration: none;
+  }
+`;
+
+const ExportButton = styled.button`
+  padding: 10px 20px;
+  background-color: #4e41f0;
+  color: white;
+  border: none;
+  border-radius: 7px;
+  cursor: pointer;
+  font-weight: bold;
+  margin-left: 15px;
+
+  &:hover {
+    background-color: #3c35d2;
   }
 `;
 
@@ -170,6 +189,25 @@ const Entradas: React.FC = () => {
     if (page >= 0 && page < totalPages) setCurrentPage(page);
   };
 
+  const exportToExcel = () => {
+    // Prepare data - transform entradas to array of objects with readable fields
+    const dataToExport = entradas.map((entrada) => ({
+      Produto: entrada.nomeProduto,
+      Quantidade: entrada.quantidade,
+      Data: entrada.data.split("-").reverse().join("/"),
+    }));
+
+    // Create worksheet and workbook
+    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Entradas");
+
+    // Write workbook to binary and trigger download
+    const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
+    const data = new Blob([excelBuffer], { type: "application/octet-stream" });
+    saveAs(data, "entradas.xlsx");
+  };
+
   return (
     <div>
       <ContentHeader title="Entradas" lineColor="#4E41F0">
@@ -181,20 +219,23 @@ const Entradas: React.FC = () => {
       <Container>
         <Title>Entradas de Produtos</Title>
         <FilterContainer>
-          <Select
-            options={meses}
-            placeholder="Filtrar por mês"
-            onChange={(option) => setFiltroMes(option?.value || "")}
-            styles={customStyles}
-            isClearable
-          />
-          <Select
-            options={anos}
-            placeholder="Filtrar por ano"
-            onChange={(option) => setFiltroAno(option?.value || "")}
-            styles={customStyles}
-            isClearable
-          />
+          <div style={{ display: "flex", gap: "15px", flexGrow: 1 }}>
+            <Select
+              options={meses}
+              placeholder="Filtrar por mês"
+              onChange={(option) => setFiltroMes(option?.value || "")}
+              styles={customStyles}
+              isClearable
+            />
+            <Select
+              options={anos}
+              placeholder="Filtrar por ano"
+              onChange={(option) => setFiltroAno(option?.value || "")}
+              styles={customStyles}
+              isClearable
+            />
+          </div>
+          <ExportButton onClick={exportToExcel}>Exportar Excel</ExportButton>
         </FilterContainer>
         <Table>
           <thead>
