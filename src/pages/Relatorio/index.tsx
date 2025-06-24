@@ -26,13 +26,6 @@ const Input = styled.input`
   border: 1px solid #ccc;
 `;
 
-const Select = styled.select`
-  padding: 8px;
-  font-size: 14px;
-  border-radius: 4px;
-  border: 1px solid #ccc;
-`;
-
 const CheckboxLabel = styled.label`
   display: flex;
   align-items: center;
@@ -105,66 +98,70 @@ const Relatorio: React.FC = () => {
   const navigate = useNavigate();
   const [relatorio, setRelatorio] = useState<RelatorioFuncionario[]>([]);
   const [search, setSearch] = useState("");
-  const [mes, setMes] = useState(new Date().getMonth() + 1);
-  const [ano, setAno] = useState(new Date().getFullYear());
   const [currentPage, setCurrentPage] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [apenasFolha, setApenasFolha] = useState(false);
-  const anosFixos = [2024, 2025, 2026, 2027];
   const [dataInicio, setDataInicio] = useState<string>("");  
   const [dataFim, setDataFim] = useState<string>("");
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-// escolhe endpoint: período ou mês/ano
-      let endpointBase = "/api/funcionarios/gastos-funcionarios";
-      
-      if (dataInicio && dataFim) {
-        endpointBase += apenasFolha
-        ? "/folha/periodo"
-        : "/periodo";
-      } else {
-        endpointBase += apenasFolha
-        ? "/folha"
-        : "";
-      }
-      const params: any = { page: currentPage, size: 10 };
-      if (dataInicio && dataFim) {
-        params.dataInicio = dataInicio;
-        params.dataFim = dataFim;
-      } else {
-        params.mes = mes;
-        params.ano = ano;
-      }
-      
-      const response = await api.get(endpointBase, { params });
+        let endpointBase = "/api/funcionarios/gastos-funcionarios";
+        if (dataInicio && dataFim) {
+          endpointBase += apenasFolha ? "/folha/periodo" : "/periodo";
+        } else {
+          endpointBase += apenasFolha ? "/folha" : "";
+        }
 
-      const dados = response.data;
-      setRelatorio(dados.content);
-      setTotalPages(dados.totalPages);
+        const params: any = { page: currentPage, size: 10 };
+        if (dataInicio && dataFim) {
+          params.dataInicio = dataInicio;
+          params.dataFim = dataFim;
+        } else {
+          const now = new Date();
+          params.mes = now.getMonth() + 1;
+          params.ano = now.getFullYear();
+        }
+
+        const response = await api.get(endpointBase, { params });
+        const dados = response.data;
+        setRelatorio(dados.content);
+        setTotalPages(dados.totalPages);
       } catch (error) {
         console.error("Erro ao buscar dados:", error);
       }
     };
 
     fetchData();
-  }, [mes, ano, currentPage, apenasFolha]);
+  }, [dataInicio, dataFim, currentPage, apenasFolha]);
 
   const exportarParaExcel = async () => {
     try {
-      const endpoint = apenasFolha
-        ? "/api/funcionarios/gastos-funcionarios/folha"
-        : "/api/funcionarios/gastos-funcionarios";
+      let endpoint = "/api/funcionarios/gastos-funcionarios";
+      if (dataInicio && dataFim) {
+        endpoint += apenasFolha ? "/folha/periodo" : "/periodo";
+      } else {
+        endpoint += apenasFolha ? "/folha" : "";
+      }
+
+      const params: any = { size: 1000 };
+      if (dataInicio && dataFim) {
+        params.dataInicio = dataInicio;
+        params.dataFim = dataFim;
+      } else {
+        const now = new Date();
+        params.mes = now.getMonth() + 1;
+        params.ano = now.getFullYear();
+      }
 
       let todosDados: RelatorioFuncionario[] = [];
       let pagina = 0;
       let totalPaginas = 1;
 
-      // Loop para pegar todas as páginas (em lotes de 1000)
       while (pagina < totalPaginas) {
         const response = await api.get(endpoint, {
-          params: { mes, ano, page: pagina, size: 1000 },
+          params: { ...params, page: pagina },
         });
         const dados = response.data;
         todosDados = todosDados.concat(dados.content);
@@ -172,33 +169,26 @@ const Relatorio: React.FC = () => {
         pagina++;
       }
 
-      // Filtra pela busca
       const dadosFiltrados = todosDados.filter((item) =>
         item.nomeFuncionario.toLowerCase().includes(search.toLowerCase())
       );
 
-      // Mapear dados para exportação
       const dadosParaExcel = dadosFiltrados.map((item) => ({
         "Nome do Funcionário": item.nomeFuncionario,
         "Valor Total Gasto (R$)": item.valorTotalGasto,
       }));
 
-      // Cria worksheet
       const worksheet = XLSX.utils.json_to_sheet(dadosParaExcel);
-
-      // Define largura das colunas
       worksheet["!cols"] = [{ wch: 30 }, { wch: 20 }];
 
-      // Formata coluna de valor como moeda brasileira
       for (let i = 2; i <= dadosParaExcel.length + 1; i++) {
         const cellAddress = `B${i}`;
         if (worksheet[cellAddress]) {
-          worksheet[cellAddress].t = "n"; // número
-          worksheet[cellAddress].z = 'R$#,##0.00'; // formato moeda BR
+          worksheet[cellAddress].t = "n";
+          worksheet[cellAddress].z = 'R$#,##0.00';
         }
       }
 
-      // Estiliza cabeçalho: negrito, cor branca, fundo azul, texto centralizado
       const range = XLSX.utils.decode_range(worksheet["!ref"]!);
       for (let C = range.s.c; C <= range.e.c; ++C) {
         const cellAddress = XLSX.utils.encode_cell({ r: 0, c: C });
@@ -210,11 +200,9 @@ const Relatorio: React.FC = () => {
         };
       }
 
-      // Cria workbook e adiciona planilha
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, "Relatório");
 
-      // Gera arquivo Excel com estilos
       const excelBuffer = XLSX.write(workbook, {
         bookType: "xlsx",
         type: "array",
@@ -226,7 +214,11 @@ const Relatorio: React.FC = () => {
           "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8",
       });
 
-      saveAs(blob, `relatorio_${mes}_${ano}.xlsx`);
+      const nomeArquivo = dataInicio && dataFim
+        ? `relatorio_${dataInicio}_a_${dataFim}.xlsx`
+        : `relatorio_mes_atual.xlsx`;
+
+      saveAs(blob, nomeArquivo);
     } catch (error) {
       console.error("Erro ao exportar:", error);
       alert("Erro ao exportar para Excel.");
@@ -242,50 +234,22 @@ const Relatorio: React.FC = () => {
       </ContentHeader>
 
       <Filters>
-        {/* <Select
-          value={mes}
-          onChange={(e) => {
-            setMes(Number(e.target.value));
-            setCurrentPage(0);
-          }}
-        >
-          {[...Array(12)].map((_, index) => {
-            const nomeMes = new Date(0, index).toLocaleString("pt-BR", {
-              month: "long",
-            });
-            const nomeMesCapitalizado =
-              nomeMes.charAt(0).toUpperCase() + nomeMes.slice(1);
-            return (
-            <option key={index + 1} value={index + 1}>
-            {nomeMesCapitalizado}
-            </option>
-          );
-        })}
-        </Select> */}
-        
-        {/* <Select
-          value={ano}
-          onChange={(e) => {
-            setAno(Number(e.target.value));
-            setCurrentPage(0);
-          }}
-        >
-          {anosFixos.map((y) => (
-            <option key={y} value={y}>
-              {y}
-            </option>
-          ))}
-        </Select> */}
         <Input
           type="date"
           value={dataInicio}
-          onChange={e => { setDataInicio(e.target.value); setCurrentPage(0); }}
+          onChange={(e) => {
+            setDataInicio(e.target.value);
+            setCurrentPage(0);
+          }}
           placeholder="Data início"
         />
         <Input
           type="date"
           value={dataFim}
-          onChange={e => { setDataFim(e.target.value); setCurrentPage(0); }}
+          onChange={(e) => {
+            setDataFim(e.target.value);
+            setCurrentPage(0);
+          }}
           placeholder="Data fim"
         />
         <Input
@@ -357,4 +321,3 @@ const Relatorio: React.FC = () => {
 };
 
 export default Relatorio;
-  
