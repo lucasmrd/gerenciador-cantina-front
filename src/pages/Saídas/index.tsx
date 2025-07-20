@@ -252,11 +252,11 @@ const Saidas: React.FC = () => {
         "Produtos": (saida.itens || [])
           .map(
             (item: any) =>
-              `${item.nomeProduto} (${item.quantidade}) - R$ ${item.valor.toFixed(
-                2
-              )}`
-          )
-          .join("\n"),
+              `${item.nomeProduto} (${item.quantidade}) - R$ ${item.valor.toLocaleString('pt-BR', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+              })}`
+          ).join("\n"),
         "Pagamento": saida.pagamento,
         "Data": saida.data.split("-").reverse().join("/"),
       }));
@@ -355,7 +355,10 @@ const Saidas: React.FC = () => {
                   {(saida.itens || []).map((item: any, idx: number) => (
                     <div key={idx}>
                       • {item.nomeProduto} ({item.quantidade}) - R${" "}
-                      {item.valor.toFixed(2)}
+                      {item.valor.toLocaleString('pt-BR', {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                      })}
                     </div>
                   ))}
                 </Td>
