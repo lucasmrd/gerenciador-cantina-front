@@ -7,6 +7,7 @@ import { IoArrowBack } from "react-icons/io5";
 import { AiOutlineClose } from "react-icons/ai";
 import { StylesConfig } from "react-select";
 import api from "../../api";
+import ModalEditarSaida from "../../components/ModalEditarSaida";
 
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
@@ -111,6 +112,44 @@ const ExportButton = styled.button`
   }
 `;
 
+
+
+const Filters = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 20px;
+  margin-bottom: 20px;
+  align-items: center;
+`;
+
+const Input = styled.input`
+  padding: 8px;
+  font-size: 14px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+`;
+
+
+const Button = styled.button`
+  padding: 8px 14px;
+  background-color: #4e41f0;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  &:hover {
+    background-color: #3b33c9;
+  }
+`;
+
+
 const PaginationContainer = styled.div`
   display: flex;
   justify-content: center;
@@ -138,6 +177,84 @@ const Span = styled.span`
   color: ${(props) => props.theme.colors.white};
 `;
 
+const ModalContainer = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+`;
+
+const ModalContent = styled.div`
+  background-color: white;
+  padding: 2rem;
+  border-radius: 12px;
+  width: 500px;
+  max-width: 90%;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+
+  h2 {
+    margin-bottom: 1rem;
+  }
+
+  label {
+    font-weight: bold;
+    margin-top: 1rem;
+    display: block;
+  }
+
+  input {
+    width: 100%;
+    padding: 8px;
+    margin-top: 4px;
+    margin-bottom: 12px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+  }
+
+  button {
+    padding: 8px 16px;
+    background-color: #4caf50;
+    border: none;
+    color: white;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+
+  button:first-child {
+    background-color: #999;
+  }
+
+  ul {
+    list-style: none;
+    padding-left: 0;
+  }
+`;
+
+const DateFilters = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+
+  label {
+    font-weight: bold;
+  }
+
+  input[type="date"] {
+    padding: 6px 8px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 14px;
+  }
+`;
+
+
 const customStyles: StylesConfig<{ value: string; label: string }, false> = {
   control: (base, state) => ({
     ...base,
@@ -157,6 +274,17 @@ const Saidas: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<number>(0);
   const [totalPages, setTotalPages] = useState<number>(1);
   const pageSize = 10;
+  const [modalAberto, setModalAberto] = useState(false);
+  const [saidaSelecionada, setSaidaSelecionada] = useState<any>(null);
+  const [filtroDataInicio, setFiltroDataInicio] = useState("");
+  const [filtroDataFim, setFiltroDataFim] = useState("");
+  const [filtroFuncionario, setFiltroFuncionario] = useState("");
+  const [search, setSearch] = useState<string>("");
+  const [dataInicio, setDataInicio] = useState<string>("");
+  const [dataFim, setDataFim] = useState<string>("");
+
+
+
 
   const meses = [
     { value: "1", label: "Janeiro" },
@@ -179,6 +307,20 @@ const Saidas: React.FC = () => {
     { value: "2023", label: "2023" },
   ];
 
+  const funcionariosOptions = [
+  { value: "João", label: "João" },
+  { value: "Maria", label: "Maria" },
+  // ...
+];
+
+const pagamentosOptions = [
+  { value: "Dinheiro", label: "Dinheiro" },
+  { value: "Cartão", label: "Cartão" },
+  // ...
+];
+
+  
+
   useEffect(() => {
     setCurrentPage(0);
   }, [filtroMes, filtroAno]);
@@ -187,31 +329,51 @@ const Saidas: React.FC = () => {
     fetchSaidas();
   }, [currentPage, filtroMes, filtroAno]);
 
-  const fetchSaidas = async () => {
-    try {
-      let endpoint = "/api/vendas";
-      const params: any = { page: currentPage, size: pageSize };
+const fetchSaidas = async () => {
+  try {
+    let endpoint = "/api/vendas";
+    const params: any = { page: currentPage, size: pageSize };
 
-      if (filtroMes && filtroAno) {
-        endpoint += "/filtrar";
-        params.mes = filtroMes;
-        params.ano = filtroAno;
-      } else if (filtroMes) {
-        endpoint += "/filtrar/mes";
-        params.mes = filtroMes;
-      } else if (filtroAno) {
-        endpoint += "/filtrar/ano";
-        params.ano = filtroAno;
-      }
-
-      const response = await api.get(endpoint, { params });
-      const dados = response.data;
-      setSaidas(dados.content);
-      setTotalPages(dados.totalPages);
-    } catch (error) {
-      console.error("Erro ao buscar saídas:", error);
+    if (filtroMes && filtroAno) {
+      endpoint += "/filtrar";
+      params.mes = filtroMes;
+      params.ano = filtroAno;
+    } else if (filtroMes) {
+      endpoint += "/filtrar/mes";
+      params.mes = filtroMes;
+    } else if (filtroAno) {
+      endpoint += "/filtrar/ano";
+      params.ano = filtroAno;
     }
-  };
+
+    // Adiciona filtros de data e funcionário
+    if (filtroDataInicio) {
+      params.dataInicio = filtroDataInicio;
+    }
+
+    if (filtroDataFim) {
+      params.dataFim = filtroDataFim;
+    }
+
+    if (filtroFuncionario) {
+      params.funcionario = filtroFuncionario;
+    }
+
+    const response = await api.get(endpoint, { params });
+    const dados = response.data;
+    setSaidas(dados.content);
+    setTotalPages(dados.totalPages);
+  } catch (error) {
+    console.error("Erro ao buscar saídas:", error);
+  }
+};
+
+
+  const handleEditarSaida = (saida: any) => {
+  setSaidaSelecionada(saida);
+  setModalAberto(true);
+};
+
 
   const handlePageChange = (page: number) => {
     if (page >= 0 && page < totalPages) setCurrentPage(page);
@@ -299,43 +461,38 @@ const Saidas: React.FC = () => {
       <Container>
         <Title>Saídas de Produtos</Title>
 
-<FilterContainer>
-  <div style={{ display: "flex", gap: "10px" }}>
-    <FilterWrapper>
-      <Select
-        options={meses}
-        placeholder="Filtrar por mês"
-        value={meses.find((m) => m.value === filtroMes) || null}
-        onChange={(opt) => setFiltroMes(opt?.value || "")}
-        styles={customStyles}
-      />
-      {filtroMes && (
-        <ClearButton onClick={() => setFiltroMes("")}>
-          <AiOutlineClose />
-        </ClearButton>
-      )}
-    </FilterWrapper>
+<Filters>
+  <Input
+    type="date"
+    value={dataInicio}
+    onChange={(e) => {
+      setDataInicio(e.target.value);
+      setCurrentPage(0);
+    }}
+    placeholder="Data início"
+  />
+  <Input
+    type="date"
+    value={dataFim}
+    onChange={(e) => {
+      setDataFim(e.target.value);
+      setCurrentPage(0);
+    }}
+    placeholder="Data fim"
+  />
+  <Input
+    type="text"
+    placeholder="Funcionário..."
+    value={search}
+    onChange={(e) => {
+      setSearch(e.target.value);
+      setCurrentPage(0);
+    }}
+  />
+  <Button onClick={exportarParaExcel}>Exportar Excel</Button>
+</Filters>
 
-    <FilterWrapper>
-      <Select
-        options={anos}
-        placeholder="Filtrar por ano"
-        value={anos.find((a) => a.value === filtroAno) || null}
-        onChange={(opt) => setFiltroAno(opt?.value || "")}
-        styles={customStyles}
-      />
-      {filtroAno && (
-        <ClearButton onClick={() => setFiltroAno("")}>
-          <AiOutlineClose />
-        </ClearButton>
-      )}
-    </FilterWrapper>
-  </div>
 
-  <ExportButton onClick={exportarParaExcel}>
-    Exportar Excel
-  </ExportButton>
-</FilterContainer>
 
 
         <Table>
@@ -347,27 +504,50 @@ const Saidas: React.FC = () => {
               <Th>Data</Th>
             </tr>
           </thead>
-          <tbody>
-            {saidas.map((saida) => (
-              <tr key={saida.id}>
-                <Td>{saida.funcionario}</Td>
-                <Td>
-                  {(saida.itens || []).map((item: any, idx: number) => (
-                    <div key={idx}>
-                      • {item.nomeProduto} ({item.quantidade}) - R${" "}
-                      {item.valor.toLocaleString('pt-BR', {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2
-                      })}
-                    </div>
-                  ))}
-                </Td>
-                <Td>{saida.pagamento}</Td>
-                <Td>{saida.data.split("-").reverse().join("/")}</Td>
-              </tr>
-            ))}
-          </tbody>
+                  <tbody>
+          {saidas.map((saida) => (
+            <tr key={saida.id} onClick={() => handleEditarSaida(saida)} style={{ cursor: "pointer" }}>
+              <Td>{saida.funcionario}</Td>
+              <Td>
+                {(saida.itens || []).map((item: any, idx: number) => (
+                  <div key={idx}>
+                    • {item.nomeProduto} ({item.quantidade}) - R${" "}
+                    {item.valor.toLocaleString('pt-BR', {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2
+                    })}
+                  </div>
+                ))}
+              </Td>
+              <Td>{saida.pagamento}</Td>
+              <Td>{saida.data.split("-").reverse().join("/")}</Td>
+            </tr>
+          ))}
+        </tbody>
+
         </Table>
+
+                    <ModalEditarSaida
+          isOpen={modalAberto}
+          onClose={() => setModalAberto(false)}
+          dadosSaida={saidaSelecionada}
+          funcionariosOptions={funcionariosOptions} // array tipo [{value: 'João', label: 'João'}, ...]
+          pagamentosOptions={pagamentosOptions}   // array tipo [{value: 'Dinheiro', label: 'Dinheiro'}, ...]
+          onSave={(dadosAtualizados) => {
+            console.log("Dados atualizados:", dadosAtualizados);
+
+            setModalAberto(false);
+
+            setSaidas((prev) =>
+              prev.map((saida) =>
+                saida.id === dadosAtualizados.id ? { ...saida, ...dadosAtualizados } : saida
+              )
+            );
+
+            // Aqui você pode colocar a chamada PUT na API pra salvar no back-end
+          }}
+        />
+
 
         <PaginationContainer>
           <PaginationButton
