@@ -7,6 +7,7 @@ import { IoArrowBack } from "react-icons/io5";
 import { AiOutlineClose } from "react-icons/ai";
 import { StylesConfig } from "react-select";
 import api from "../../api";
+import ModalEditarSaida from "../../components/ModalEditarSaida";
 
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
@@ -111,6 +112,44 @@ const ExportButton = styled.button`
   }
 `;
 
+
+
+const Filters = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 20px;
+  margin-bottom: 20px;
+  align-items: center;
+`;
+
+const Input = styled.input`
+  padding: 8px;
+  font-size: 14px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+`;
+
+
+const Button = styled.button`
+  padding: 8px 14px;
+  background-color: #4e41f0;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  &:hover {
+    background-color: #3b33c9;
+  }
+`;
+
+
 const PaginationContainer = styled.div`
   display: flex;
   justify-content: center;
@@ -138,6 +177,84 @@ const Span = styled.span`
   color: ${(props) => props.theme.colors.white};
 `;
 
+const ModalContainer = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+`;
+
+const ModalContent = styled.div`
+  background-color: white;
+  padding: 2rem;
+  border-radius: 12px;
+  width: 500px;
+  max-width: 90%;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+
+  h2 {
+    margin-bottom: 1rem;
+  }
+
+  label {
+    font-weight: bold;
+    margin-top: 1rem;
+    display: block;
+  }
+
+  input {
+    width: 100%;
+    padding: 8px;
+    margin-top: 4px;
+    margin-bottom: 12px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+  }
+
+  button {
+    padding: 8px 16px;
+    background-color: #4caf50;
+    border: none;
+    color: white;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+
+  button:first-child {
+    background-color: #999;
+  }
+
+  ul {
+    list-style: none;
+    padding-left: 0;
+  }
+`;
+
+const DateFilters = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+
+  label {
+    font-weight: bold;
+  }
+
+  input[type="date"] {
+    padding: 6px 8px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 14px;
+  }
+`;
+
+
 const customStyles: StylesConfig<{ value: string; label: string }, false> = {
   control: (base, state) => ({
     ...base,
@@ -151,192 +268,196 @@ const customStyles: StylesConfig<{ value: string; label: string }, false> = {
 
 const Saidas: React.FC = () => {
   const navigate = useNavigate();
-  const [filtroMes, setFiltroMes] = useState<string>("");
-  const [filtroAno, setFiltroAno] = useState<string>("");
   const [saidas, setSaidas] = useState<any[]>([]);
   const [currentPage, setCurrentPage] = useState<number>(0);
   const [totalPages, setTotalPages] = useState<number>(1);
   const pageSize = 10;
+  const [modalAberto, setModalAberto] = useState(false);
+  const [saidaSelecionada, setSaidaSelecionada] = useState<any>(null);
 
-  const meses = [
-    { value: "1", label: "Janeiro" },
-    { value: "2", label: "Fevereiro" },
-    { value: "3", label: "Março" },
-    { value: "4", label: "Abril" },
-    { value: "5", label: "Maio" },
-    { value: "6", label: "Junho" },
-    { value: "7", label: "Julho" },
-    { value: "8", label: "Agosto" },
-    { value: "9", label: "Setembro" },
-    { value: "10", label: "Outubro" },
-    { value: "11", label: "Novembro" },
-    { value: "12", label: "Dezembro" },
+  const now = new Date()
+
+  const firstDay = new Date(now.getFullYear(), now.getMonth(), 1)
+    .toISOString()
+    .split("T")[0]  
+
+  const lastDay  = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+    .toISOString()
+    .split("T")[0]
+
+  const [dataInicio, setDataInicio] = useState<string>(firstDay);
+  const [dataFim, setDataFim] = useState<string>(lastDay);
+  const [searchName, setSearchName] = useState<string>("")
+
+  const funcionariosOptions = [
+    { value: "João", label: "João" },
+    { value: "Maria", label: "Maria" },
+    // ...
   ];
 
-  const anos = [
-    { value: "2025", label: "2025" },
-    { value: "2024", label: "2024" },
-    { value: "2023", label: "2023" },
+  const pagamentosOptions = [
+    { value: "Dinheiro", label: "Dinheiro" },
+    { value: "Cartão", label: "Cartão" },
+    // ...
   ];
 
   useEffect(() => {
-    setCurrentPage(0);
-  }, [filtroMes, filtroAno]);
+  setCurrentPage(0);
+  }, [dataInicio, dataFim, searchName]);
 
   useEffect(() => {
     fetchSaidas();
-  }, [currentPage, filtroMes, filtroAno]);
+  }, [currentPage, dataInicio, dataFim, searchName]);
 
   const fetchSaidas = async () => {
-    try {
-      let endpoint = "/api/vendas";
-      const params: any = { page: currentPage, size: pageSize };
+    try {      
+      let endpoint = "/api/vendas"
+      const params: any = { page: currentPage, size: pageSize }
 
-      if (filtroMes && filtroAno) {
-        endpoint += "/filtrar";
-        params.mes = filtroMes;
-        params.ano = filtroAno;
-      } else if (filtroMes) {
-        endpoint += "/filtrar/mes";
-        params.mes = filtroMes;
-      } else if (filtroAno) {
-        endpoint += "/filtrar/ano";
-        params.ano = filtroAno;
+      if (dataInicio && dataFim && searchName) {
+        endpoint += "/filtrar/periodo-nome"
+        params.dataInicio = dataInicio
+        params.dataFim = dataFim
+        params.nome = searchName
+      }
+      else if (dataInicio && dataFim) {
+        endpoint += "/filtrar/periodo"
+        params.dataInicio = dataInicio
+        params.dataFim = dataFim
+      }
+      else if (searchName) {
+        endpoint += "/filtrar/nome"
+        params.nome = searchName
       }
 
-      const response = await api.get(endpoint, { params });
-      const dados = response.data;
-      setSaidas(dados.content);
-      setTotalPages(dados.totalPages);
-    } catch (error) {
-      console.error("Erro ao buscar saídas:", error);
+      const res = await api.get(endpoint, { params })
+      setSaidas(res.data.content)
+      setTotalPages(res.data.totalPages)
+    } catch (err) {
+      console.error("Erro ao buscar saídas:", err)
     }
+  }
+
+  const handleEditarSaida = (saida: any) => {
+    setSaidaSelecionada(saida);
+    setModalAberto(true);
   };
 
   const handlePageChange = (page: number) => {
     if (page >= 0 && page < totalPages) setCurrentPage(page);
   };
 
-  const exportarParaExcel = async () => {
-    try {
-      let todasSaidas: any[] = [];
-      let pagina = 0;
-      let totalPaginasExport = 1;
-      const sizeExport = 1000;
+const exportarParaExcel = async () => {
+  try {
+    let endpoint = "/api/vendas";
+    const params: any = {
+      page: currentPage,
+      size: pageSize,
+    };
 
-      while (pagina < totalPaginasExport) {
-        let endpoint = "/api/vendas";
-        const params: any = { page: pagina, size: sizeExport };
-
-        if (filtroMes && filtroAno) {
-          endpoint += "/filtrar";
-          params.mes = filtroMes;
-          params.ano = filtroAno;
-        } else if (filtroMes) {
-          endpoint += "/filtrar/mes";
-          params.mes = filtroMes;
-        } else if (filtroAno) {
-          endpoint += "/filtrar/ano";
-          params.ano = filtroAno;
-        }
-
-        const response = await api.get(endpoint, { params });
-        const dados = response.data;
-        todasSaidas = todasSaidas.concat(dados.content);
-        totalPaginasExport = dados.totalPages;
-        pagina++;
-      }
-
-      const dadosExcel = todasSaidas.map((saida) => ({
-        "Funcionário": saida.funcionario,
-        "Produtos": (saida.itens || [])
-          .map(
-            (item: any) =>
-              `${item.nomeProduto} (${item.quantidade}) - R$ ${item.valor.toLocaleString('pt-BR', {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2
-              })}`
-          ).join("\n"),
-        "Pagamento": saida.pagamento,
-        "Data": saida.data.split("-").reverse().join("/"),
-      }));
-
-      const worksheet = XLSX.utils.json_to_sheet(dadosExcel);
-      worksheet["!cols"] = [
-        { wch: 25 },
-        { wch: 50 },
-        { wch: 15 },
-        { wch: 15 },
-      ];
-
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Relatório Saídas");
-
-      const excelBuffer = XLSX.write(workbook, {
-        bookType: "xlsx",
-        type: "array",
-        cellStyles: true,
-      });
-
-      const blob = new Blob([excelBuffer], {
-        type:
-          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8",
-      });
-
-      saveAs(blob, `relatorio_saidas_${new Date().toISOString()}.xlsx`);
-    } catch (error) {
-      console.error("Erro ao exportar para Excel:", error);
+    if (dataInicio && dataFim && searchName) {
+      endpoint += "/filtrar/periodo-nome";
+      params.dataInicio = dataInicio;
+      params.dataFim    = dataFim;
+      params.nome       = searchName;
     }
-  };
+    else if (dataInicio && dataFim) {
+      endpoint += "/filtrar/periodo";
+      params.dataInicio = dataInicio;
+      params.dataFim    = dataFim;
+    }
+    else if (searchName) {
+      endpoint += "/filtrar/nome";
+      params.nome = searchName;
+    }
+
+    const res = await api.get(endpoint, { params });
+    const atuais = res.data.content;
+
+    const dadosExcel = atuais.map((saida: any) => ({
+      "Funcionário": saida.funcionario,
+      "Produtos": (saida.itens || [])
+        .map(
+          (item: any) =>
+            `${item.nomeProduto} (${item.quantidade}) – R$ ${item.valor.toLocaleString('pt-BR', {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2
+            })}`
+        )
+        .join("\n"),
+      "Pagamento": saida.pagamento,
+      "Data": saida.data.split("-").reverse().join("/"),
+    }));
+
+
+    const worksheet = XLSX.utils.json_to_sheet(dadosExcel);
+    worksheet["!cols"] = [
+      { wch: 25 },
+      { wch: 50 },
+      { wch: 15 },
+      { wch: 15 },
+    ];
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Página Atual");
+    const excelBuffer = XLSX.write(workbook, {
+      bookType: "xlsx",
+      type: "array",
+      cellStyles: true,
+    });
+
+    const blob = new Blob([excelBuffer], {
+      type:
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8",
+    });
+    saveAs(blob, `saidas_pagina_${currentPage + 1}.xlsx`);
+  }
+  catch (error) {
+    console.error("Erro ao exportar página atual:", error);
+    alert("Não foi possível exportar a página atual.");
+  }
+};
 
   return (
     <div>
       <ContentHeader title="Saídas" lineColor="#4E41F0" >
-      <BackButton onClick={() => navigate("/controle_estoque")}> 
-        <IoArrowBack size={16} /> Voltar
-      </BackButton>
+        <BackButton onClick={() => navigate("/controle_estoque")}>
+          <IoArrowBack size={16} /> Voltar
+        </BackButton>
       </ContentHeader>
       <Container>
         <Title>Saídas de Produtos</Title>
 
-<FilterContainer>
-  <div style={{ display: "flex", gap: "10px" }}>
-    <FilterWrapper>
-      <Select
-        options={meses}
-        placeholder="Filtrar por mês"
-        value={meses.find((m) => m.value === filtroMes) || null}
-        onChange={(opt) => setFiltroMes(opt?.value || "")}
-        styles={customStyles}
-      />
-      {filtroMes && (
-        <ClearButton onClick={() => setFiltroMes("")}>
-          <AiOutlineClose />
-        </ClearButton>
-      )}
-    </FilterWrapper>
-
-    <FilterWrapper>
-      <Select
-        options={anos}
-        placeholder="Filtrar por ano"
-        value={anos.find((a) => a.value === filtroAno) || null}
-        onChange={(opt) => setFiltroAno(opt?.value || "")}
-        styles={customStyles}
-      />
-      {filtroAno && (
-        <ClearButton onClick={() => setFiltroAno("")}>
-          <AiOutlineClose />
-        </ClearButton>
-      )}
-    </FilterWrapper>
-  </div>
-
-  <ExportButton onClick={exportarParaExcel}>
-    Exportar Excel
-  </ExportButton>
-</FilterContainer>
-
+        <Filters>
+          <Input
+            type="date"
+            value={dataInicio}
+            onChange={(e) => {
+              setDataInicio(e.target.value);
+              setCurrentPage(0);
+            }}
+            placeholder="Data início"
+          />
+          <Input
+            type="date"
+            value={dataFim}
+            onChange={(e) => {
+              setDataFim(e.target.value);
+              setCurrentPage(0);
+            }}
+            placeholder="Data fim"
+          />
+          <Input
+            type="text"
+            placeholder="Funcionário..."
+            value={searchName}
+            onChange={(e) => {
+              setSearchName(e.target.value);
+              setCurrentPage(0);
+            }}
+          />
+          <Button onClick={exportarParaExcel}>Exportar Excel</Button>
+        </Filters>
 
         <Table>
           <thead>
@@ -349,7 +470,7 @@ const Saidas: React.FC = () => {
           </thead>
           <tbody>
             {saidas.map((saida) => (
-              <tr key={saida.id}>
+              <tr key={saida.id} onClick={() => handleEditarSaida(saida)} style={{ cursor: "pointer" }}>
                 <Td>{saida.funcionario}</Td>
                 <Td>
                   {(saida.itens || []).map((item: any, idx: number) => (
@@ -368,6 +489,25 @@ const Saidas: React.FC = () => {
             ))}
           </tbody>
         </Table>
+
+        <ModalEditarSaida
+          isOpen={modalAberto}
+          onClose={() => setModalAberto(false)}
+          dadosSaida={saidaSelecionada}
+          funcionariosOptions={funcionariosOptions} // array tipo [{value: 'João', label: 'João'}, ...]
+          pagamentosOptions={pagamentosOptions}   // array tipo [{value: 'Dinheiro', label: 'Dinheiro'}, ...]
+          onSave={(dadosAtualizados) => {
+            console.log("Dados atualizados:", dadosAtualizados);
+
+            setModalAberto(false);
+
+            setSaidas((prev) =>
+              prev.map((saida) =>
+                saida.id === dadosAtualizados.id ? { ...saida, ...dadosAtualizados } : saida
+              )
+            );
+          }}
+        />
 
         <PaginationContainer>
           <PaginationButton

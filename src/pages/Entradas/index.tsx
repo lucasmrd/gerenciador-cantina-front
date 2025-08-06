@@ -129,6 +129,8 @@ const Entradas: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<number>(0);
   const [totalPages, setTotalPages] = useState<number>(1);
   const pageSize = 10;
+  const [dataInicio, setDataInicio] = useState("");
+  const [dataFim, setDataFim] = useState("");
 
   const meses = [
     { value: "1", label: "Janeiro" },
@@ -145,37 +147,49 @@ const Entradas: React.FC = () => {
     { value: "12", label: "Dezembro" },
   ];
 
+  const fetchEntradas = async () => {
+  try {
+    let endpoint = "/api/entradas";
+    const params: any = { page: currentPage, size: pageSize };
+
+    if (dataInicio && dataFim) {
+      endpoint += "/periodo";
+      params.dataInicio = dataInicio;
+      params.dataFim = dataFim;
+    } else if (filtroMes && filtroAno) {
+      endpoint += "/filtrar";
+      params.mes = filtroMes;
+      params.ano = filtroAno;
+    } else if (filtroMes) {
+      endpoint += "/filtrar/mes";
+      params.mes = filtroMes;
+    } else if (filtroAno) {
+      endpoint += "/filtrar/ano";
+      params.ano = filtroAno;
+    }
+
+    const response = await api.get(endpoint, { params });
+    const dados = response.data;
+    setEntradas(dados.content);
+    setTotalPages(dados.totalPages);
+  } catch (error) {
+    console.error("Erro ao buscar entradas:", error);
+  }
+};
+
+useEffect(() => {
+  if (dataInicio || dataFim) {
+    setFiltroMes("");
+    setFiltroAno("");
+  }
+}, [dataInicio, dataFim]);
+
   const anos = [
     { value: "2025", label: "2025" },
     { value: "2024", label: "2024" },
     { value: "2023", label: "2023" },
   ];
 
-  const fetchEntradas = async () => {
-    try {
-      let endpoint = "/api/entradas";
-      const params: any = { page: currentPage, size: pageSize };
-
-      if (filtroMes && filtroAno) {
-        endpoint += "/filtrar";
-        params.mes = filtroMes;
-        params.ano = filtroAno;
-      } else if (filtroMes) {
-        endpoint += "/filtrar/mes";
-        params.mes = filtroMes;
-      } else if (filtroAno) {
-        endpoint += "/filtrar/ano";
-        params.ano = filtroAno;
-      }
-
-      const response = await api.get(endpoint, { params });
-      const dados = response.data;
-      setEntradas(dados.content);
-      setTotalPages(dados.totalPages);
-    } catch (error) {
-      console.error("Erro ao buscar entradas:", error);
-    }
-  };
 
   useEffect(() => {
     setCurrentPage(0);
@@ -218,25 +232,35 @@ const Entradas: React.FC = () => {
 
       <Container>
         <Title>Entradas de Produtos</Title>
-        <FilterContainer>
-          <div style={{ display: "flex", gap: "15px", flexGrow: 1 }}>
-            <Select
-              options={meses}
-              placeholder="Filtrar por mês"
-              onChange={(option) => setFiltroMes(option?.value || "")}
-              styles={customStyles}
-              isClearable
-            />
-            <Select
-              options={anos}
-              placeholder="Filtrar por ano"
-              onChange={(option) => setFiltroAno(option?.value || "")}
-              styles={customStyles}
-              isClearable
-            />
-          </div>
-          <ExportButton onClick={exportToExcel}>Exportar Excel</ExportButton>
-        </FilterContainer>
+<FilterContainer>
+  <div style={{ display: "flex", flexWrap: "wrap", gap: "15px", flexGrow: 1 }}>
+    <input
+      type="date"
+      value={dataInicio}
+      onChange={(e) => setDataInicio(e.target.value)}
+      style={{
+        padding: "10px",
+        borderRadius: "5px",
+        border: "1px solid #ccc",
+        fontSize: "14px",
+      }}
+      placeholder="Data início"
+    />
+    <input
+      type="date"
+      value={dataFim}
+      onChange={(e) => setDataFim(e.target.value)}
+      style={{
+        padding: "10px",
+        borderRadius: "5px",
+        border: "1px solid #ccc",
+        fontSize: "14px",
+      }}
+      placeholder="Data fim"
+    />
+  </div>
+  <ExportButton onClick={exportToExcel}>Exportar Excel</ExportButton>
+</FilterContainer>
         <Table>
           <thead>
             <tr>

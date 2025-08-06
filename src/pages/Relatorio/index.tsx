@@ -77,6 +77,8 @@ const Button = styled.button`
   }
 `;
 
+
+
 const BackButton = styled.button`
   width: 105px;
   padding: 10px;
@@ -86,7 +88,23 @@ const BackButton = styled.button`
   font-size: 18px;
   cursor: pointer;
   font-weight: bold;
+`
+
+const ButtonExport = styled.button`
+  padding: 10px 20px;
+  background-color: #4e41f0;
+  color: white;
+  border: none;
+  border-radius: 7px;
+  cursor: pointer;
+  font-weight: bold;
+  margin-left: 15px;
+
+  &:hover {
+    background-color: #3c35d2;
+  }
 `;
+
 
 type RelatorioFuncionario = {
   idFuncionario: string;
