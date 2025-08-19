@@ -350,31 +350,32 @@ const Saidas: React.FC = () => {
 const exportarParaExcel = async () => {
   try {
     let endpoint = "/api/vendas";
-    const params: any = {
-      page: currentPage,
-      size: pageSize,
-    };
+    const params: any = {};
 
+    // aplica filtros, mas sem paginação
     if (dataInicio && dataFim && searchName) {
       endpoint += "/filtrar/periodo-nome";
       params.dataInicio = dataInicio;
-      params.dataFim    = dataFim;
-      params.nome       = searchName;
-    }
+      params.dataFim = dataFim;
+      params.nome = searchName;
+    } 
     else if (dataInicio && dataFim) {
       endpoint += "/filtrar/periodo";
       params.dataInicio = dataInicio;
-      params.dataFim    = dataFim;
-    }
+      params.dataFim = dataFim;
+    } 
     else if (searchName) {
       endpoint += "/filtrar/nome";
       params.nome = searchName;
     }
 
-    const res = await api.get(endpoint, { params });
-    const atuais = res.data.content;
+    params.page = 0;
+    params.size = 9999;
 
-    const dadosExcel = atuais.map((saida: any) => ({
+    const res = await api.get(endpoint, { params });
+    const todasSaidas = res.data.content; // agora vem tudo
+
+ const dadosExcel = todasSaidas.map((saida: any) => ({
       "Funcionário": saida.funcionario,
       "Produtos": (saida.itens || [])
         .map(
@@ -389,7 +390,6 @@ const exportarParaExcel = async () => {
       "Data": saida.data.split("-").reverse().join("/"),
     }));
 
-
     const worksheet = XLSX.utils.json_to_sheet(dadosExcel);
     worksheet["!cols"] = [
       { wch: 25 },
@@ -399,22 +399,22 @@ const exportarParaExcel = async () => {
     ];
 
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Página Atual");
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Saídas");
     const excelBuffer = XLSX.write(workbook, {
       bookType: "xlsx",
       type: "array",
-      cellStyles: true,
     });
 
-    const blob = new Blob([excelBuffer], {
-      type:
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8",
-    });
-    saveAs(blob, `saidas_pagina_${currentPage + 1}.xlsx`);
-  }
-  catch (error) {
-    console.error("Erro ao exportar página atual:", error);
-    alert("Não foi possível exportar a página atual.");
+    saveAs(
+      new Blob([excelBuffer], {
+        type:
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8",
+      }),
+      `saidas_completas.xlsx`
+    );
+  } catch (error) {
+    console.error("Erro ao exportar Excel:", error);
+    alert("Não foi possível exportar todas as saídas.");
   }
 };
 
