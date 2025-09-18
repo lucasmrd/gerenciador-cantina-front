@@ -306,7 +306,7 @@ const Vendas: React.FC = () => {
     { value: "Débito", label: "Débito" },
     { value: "Crédito", label: "Crédito" },
     { value: "Voucher", label: "Voucher" },
-    { value: "Dinheiro", label: "Denheiro" },
+    { value: "Dinheiro", label: "Dinheiro" },
   ];
 
   const handleDataChange = (e: React.ChangeEvent<HTMLInputElement>) => {
