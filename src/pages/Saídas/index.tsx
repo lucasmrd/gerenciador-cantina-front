@@ -7,7 +7,7 @@ import { IoArrowBack } from "react-icons/io5";
 import { AiOutlineClose } from "react-icons/ai";
 import { StylesConfig } from "react-select";
 import api from "../../api";
-import ModalEditarSaida from "../../components/ModalEditarSaida";
+import ModalEditarSaida from "../../components/Modal/ModalEditarSaida";
 
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";

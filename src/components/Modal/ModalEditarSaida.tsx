@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import styled from "styled-components";
+import api from "../../api";
 
 interface Option {
   value: string;
@@ -10,29 +11,20 @@ interface ModalEditarSaidaProps {
   isOpen: boolean;
   onClose: () => void;
   dadosSaida: {
-    id: number;
+    id: string;
     funcionario: string;
     pagamento: string;
     data: string;
     itens: {
+      idProduto: string;
       nomeProduto: string;
       quantidade: number;
     }[];
   } | null;
-  onSave: (dadosAtualizados: {
-    id: number;
-    funcionario: string;
-    pagamento: string;
-    data: string;
-    itens: {
-      nomeProduto: string;
-      quantidade: number;
-    }[];
-  }) => void;
+  onSave: (dadosAtualizados: any) => void;
   funcionariosOptions: Option[];
   pagamentosOptions: Option[];
 }
-
 
 const ModalEditarSaida: React.FC<ModalEditarSaidaProps> = ({
   isOpen,
@@ -43,32 +35,45 @@ const ModalEditarSaida: React.FC<ModalEditarSaidaProps> = ({
   pagamentosOptions,
 }) => {
   const [funcionario, setFuncionario] = useState("");
-  const [itens, setItens] = useState<{ nomeProduto: string; quantidade: number }[]>([]);
+  const [itens, setItens] = useState<
+    { idProduto: string; nomeProduto: string; quantidade: number }[]
+  >([]);
   const [pagamento, setPagamento] = useState("");
   const [data, setData] = useState("");
 
-useEffect(() => {
-  if (dadosSaida) {
-    setFuncionario(dadosSaida.funcionario);
-    setPagamento(dadosSaida.pagamento);
-    setData(dadosSaida.data.slice(0, 10));
-    setItens(dadosSaida.itens); // <-- aqui
-  }
-}, [dadosSaida]);
-
+  useEffect(() => {
+    if (dadosSaida) {
+      setFuncionario(dadosSaida.funcionario);
+      setPagamento(dadosSaida.pagamento);
+      setData(dadosSaida.data.slice(0, 10));
+      setItens(dadosSaida.itens);
+    }
+  }, [dadosSaida]);
 
   if (!isOpen) return null;
 
-  const handleSave = () => {
-  if (!dadosSaida) return;
-  onSave({
-    id: dadosSaida.id,
-    funcionario,
-    pagamento,
-    data,
-    itens, // inclui os itens atualizados
-  });
-};
+  const handleSave = async () => {
+    if (!dadosSaida) return;
+
+    try {
+      const payload = {
+        idFuncionario: funcionario, // substitua por ID real se necessário
+        pagamento,
+        data,
+        produtos: itens.map((item) => ({
+          idProduto: item.idProduto,
+          quantidade: item.quantidade,
+        })),
+      };
+
+      const res = await api.put(`/api/vendas/${dadosSaida.id}`, payload);
+      onSave(res.data);
+      onClose();
+    } catch (error) {
+      console.error("Erro ao salvar venda:", error);
+      alert("Erro ao atualizar a venda.");
+    }
+  };
 
   return (
     <Overlay>
@@ -79,74 +84,84 @@ useEffect(() => {
             &times;
           </CloseButton>
         </Header>
-<Form>
-  <Label>Funcionário</Label>
-  <SelectStyled
-    value={funcionario}
-    onChange={(e) => setFuncionario(e.target.value)}
-  >
-    <option value="" disabled>
-      Selecione um funcionário
-    </option>
-    {funcionariosOptions.map((opt) => (
-      <option key={opt.value} value={opt.value}>
-        {opt.label}
-      </option>
-    ))}
-  </SelectStyled>
 
-<Label>Produtos</Label>
-{itens.map((item, index) => (
-  <div key={index} style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-    <SelectStyled
-      value={item.nomeProduto}
-      onChange={(e) => {
-        const novosItens = [...itens];
-        novosItens[index].nomeProduto = e.target.value;
-        setItens(novosItens);
-      }}
-    >
-      <option value="" disabled>Selecione o produto</option>
-      {/* Troque essa lista pela sua lista real de produtos */}
-      <option value="COCA CAÇULINHA">COCA CAÇULINHA</option>
-      <option value="FANTA UVA">FANTA UVA</option>
-    </SelectStyled>
-    <Input
-      type="number"
-      min={1}
-      value={item.quantidade}
-      onChange={(e) => {
-        const novosItens = [...itens];
-        novosItens[index].quantidade = parseInt(e.target.value);
-        setItens(novosItens);
-      }}
-    />
-  </div>
-))}
+        <Form>
+          <Label>Funcionário</Label>
+          <SelectStyled
+            value={funcionario}
+            onChange={(e) => setFuncionario(e.target.value)}
+          >
+            <option value="" disabled>
+              Selecione um funcionário
+            </option>
+            {funcionariosOptions.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </SelectStyled>
 
+          <Label>Produtos</Label>
+          {itens.map((item, index) => (
+            <div
+              key={index}
+              style={{ display: "flex", gap: "10px", alignItems: "center" }}
+            >
+              <SelectStyled
+                value={item.idProduto}
+                onChange={(e) => {
+                  const novosItens = [...itens];
+                  const idSelecionado = e.target.value;
+                  const nomeSelecionado =
+                    e.target.options[e.target.selectedIndex].text;
+                  novosItens[index].idProduto = idSelecionado;
+                  novosItens[index].nomeProduto = nomeSelecionado;
+                  setItens(novosItens);
+                }}
+              >
+                <option value="" disabled>
+                  Selecione o produto
+                </option>
+                {/* TODO: Substituir pela lista real de produtos do backend */}
+                <option value="uuid-coca">COCA CAÇULINHA</option>
+                <option value="uuid-fanta">FANTA UVA</option>
+              </SelectStyled>
 
-  <Label>Pagamento</Label>
-  <SelectStyled
-    value={pagamento}
-    onChange={(e) => setPagamento(e.target.value)}
-  >
-    <option value="" disabled>
-      Selecione o pagamento
-    </option>
-    {pagamentosOptions.map((opt) => (
-      <option key={opt.value} value={opt.value}>
-        {opt.label}
-      </option>
-    ))}
-  </SelectStyled>
+              <Input
+                type="number"
+                min={1}
+                value={item.quantidade}
+                onChange={(e) => {
+                  const novosItens = [...itens];
+                  novosItens[index].quantidade = parseInt(e.target.value);
+                  setItens(novosItens);
+                }}
+              />
+            </div>
+          ))}
 
-  <Label>Data</Label>
-  <Input
-    type="date"
-    value={data}
-    onChange={(e) => setData(e.target.value)}
-  />
-</Form>
+          <Label>Pagamento</Label>
+          <SelectStyled
+            value={pagamento}
+            onChange={(e) => setPagamento(e.target.value)}
+          >
+            <option value="" disabled>
+              Selecione o pagamento
+            </option>
+            {pagamentosOptions.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </SelectStyled>
+
+          <Label>Data</Label>
+          <Input
+            type="date"
+            value={data}
+            onChange={(e) => setData(e.target.value)}
+          />
+        </Form>
 
         <Footer>
           <ButtonCancel onClick={onClose}>Cancelar</ButtonCancel>
@@ -160,14 +175,13 @@ useEffect(() => {
 export default ModalEditarSaida;
 
 /* Styled Components */
-
 const Overlay = styled.div`
   position: fixed;
   top: 0;
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: rgba(0,0,0,0.5);
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -180,7 +194,7 @@ const ModalContainer = styled.div`
   width: 430px;
   max-width: 90%;
   padding: 20px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
 `;
 
 const Header = styled.div`
@@ -251,7 +265,7 @@ const Input = styled.input`
 const Footer = styled.div`
   margin-top: 20px;
   display: flex;
-  justify-content: flex-end;    
+  justify-content: flex-end;
   gap: 10px;
 `;
 
